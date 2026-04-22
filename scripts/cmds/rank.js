@@ -6,7 +6,7 @@ module.exports = {
     aliases:   ["exp", "level", "profile"],
     version:   "1.0",
     author:    "System",
-    usePrefix: false,
+    usePrefix: true,
     role:      0,
     category:  "economy",
     countDown: 5,
