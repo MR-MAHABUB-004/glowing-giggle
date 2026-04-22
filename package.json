@@ -10,7 +10,7 @@
   "dependencies": {
     "chalk":                "^4.1.2",
     "figlet":               "^1.7.0",
-    "node-telegram-bot-api": "^0.64.0"
+    "node-telegram-bot-api": "^0.64.0",
     "@distube/ytdl-core": "^4.13.3",
 		"axios": "^1.4.0",
 		"bcrypt": "^5.0.1",
