@@ -1,151 +1,190 @@
 "use strict";
 
 /**
- * database/index.js
- * GoatBot-style JSON database for Telegram.
- * Manages: threads, users, global, dashboard data.
+ * core/database.js
+ * MongoDB Atlas database — drop-in replacement for the JSON database.
+ * Same API: .get() .set() .update() .create() .delete() .getAll() .getOrCreate()
  *
- * Each model follows the GoatBot API:
- *   .get(id)            → returns data object
- *   .set(id, key, val)  → sets a key on a record
- *   .create(id, extra)  → create a new record
- *   .delete(id)         → remove a record
- *   .getAll()           → returns all records
+ * Setup:
+ *   1. Go to https://cloud.mongodb.com → free M0 cluster
+ *   2. Create a database user + get your connection string
+ *   3. Add to config.json:  "mongoUri": "mongodb+srv://user:pass@cluster.mongodb.net/goatbot"
  */
 
-const fs   = require("fs");
-const path = require("path");
-const log  = require("../logger/log.js");
+const mongoose = require("mongoose");
+const log      = require("../logger/log.js");
+const config   = require("../config.json");
 
-const DB_DIR = path.join(__dirname, "../database");
+// ── CONNECTION ────────────────────────────────────────────────────────────────
+let _connected = false;
 
-function ensureDir() {
-  if (!fs.existsSync(DB_DIR)) fs.mkdirSync(DB_DIR, { recursive: true });
+async function connect() {
+  if (_connected) return;
+  if (!config.mongoUri) {
+    log.error("DB", "mongoUri is missing in config.json — database disabled");
+    return;
+  }
+  try {
+    await mongoose.connect(config.mongoUri, {
+      dbName: config.dbName || "goatbot",
+    });
+    _connected = true;
+    log.success("DB", "Connected to MongoDB Atlas");
+  } catch (e) {
+    log.error("DB", `MongoDB connection failed: ${e.message}`);
+  }
 }
 
-function loadFile(filename, defaultData = {}) {
-  ensureDir();
-  const fp = path.join(DB_DIR, filename);
-  try {
-    if (!fs.existsSync(fp)) {
-      fs.writeFileSync(fp, JSON.stringify(defaultData, null, 2));
-      return defaultData;
+connect();
+
+// ── GENERIC SCHEMA ────────────────────────────────────────────────────────────
+// One collection per model, each document is { id, ...data }
+function makeModel(collectionName) {
+  const schema = new mongoose.Schema(
+    {
+      id:   { type: String, required: true, unique: true },
+      data: { type: mongoose.Schema.Types.Mixed, default: {} },
+    },
+    {
+      collection:  collectionName,
+      strict:      false,   // allow any fields
+      timestamps:  true,
     }
-    return JSON.parse(fs.readFileSync(fp, "utf8"));
-  } catch (e) {
-    log.error("DB", `loadFile(${filename}): ${e.message}`);
-    return defaultData;
-  }
+  );
+
+  // Avoid OverwriteModelError on hot-reload
+  return mongoose.models[collectionName] ||
+         mongoose.model(collectionName, schema);
 }
 
-function saveFile(filename, data) {
-  ensureDir();
-  const fp = path.join(DB_DIR, filename);
-  try {
-    fs.writeFileSync(fp, JSON.stringify(data, null, 2));
-  } catch (e) {
-    log.error("DB", `saveFile(${filename}): ${e.message}`);
-  }
-}
+// ── MODEL FACTORY ─────────────────────────────────────────────────────────────
+function createModel(collectionName, defaultRecord = {}) {
+  const Model = makeModel(collectionName);
 
-// ─── GENERIC MODEL ────────────────────────────────────────────────────────────
-function createModel(filename, defaultRecord = {}) {
   return {
-    _file: filename,
-
-    getAll() {
-      return loadFile(filename, {});
-    },
-
-    get(id) {
-      const db = loadFile(filename, {});
-      return db[String(id)] || null;
-    },
-
-    getOrCreate(id, defaults = {}) {
-      const db = loadFile(filename, {});
-      const key = String(id);
-      if (!db[key]) {
-        db[key] = { ...defaultRecord, ...defaults, id: key, createdAt: Date.now() };
-        saveFile(filename, db);
+    // ── get ────────────────────────────────────────────────────────────────
+    async get(id) {
+      try {
+        const doc = await Model.findOne({ id: String(id) }).lean();
+        if (!doc) return null;
+        const { _id, __v, createdAt, updatedAt, ...rest } = doc;
+        return rest;
+      } catch (e) {
+        log.error(collectionName, `get(${id}): ${e.message}`);
+        return null;
       }
-      return db[key];
     },
 
-    create(id, extra = {}) {
-      const db  = loadFile(filename, {});
-      const key = String(id);
-      db[key]   = { ...defaultRecord, ...extra, id: key, createdAt: Date.now() };
-      saveFile(filename, db);
-      return db[key];
+    // ── getOrCreate ────────────────────────────────────────────────────────
+    async getOrCreate(id, defaults = {}) {
+      try {
+        const key = String(id);
+        const doc = await Model.findOneAndUpdate(
+          { id: key },
+          { $setOnInsert: { id: key, ...defaultRecord, ...defaults } },
+          { upsert: true, new: true, lean: true }
+        );
+        const { _id, __v, createdAt, updatedAt, ...rest } = doc;
+        return rest;
+      } catch (e) {
+        log.error(collectionName, `getOrCreate(${id}): ${e.message}`);
+        return { id: String(id), ...defaultRecord, ...defaults };
+      }
     },
 
-    set(id, key, value) {
-      const db  = loadFile(filename, {});
-      const k   = String(id);
-      if (!db[k]) db[k] = { ...defaultRecord, id: k, createdAt: Date.now() };
-      db[k][key] = value;
-      db[k].updatedAt = Date.now();
-      saveFile(filename, db);
-      return db[k];
+    // ── create ─────────────────────────────────────────────────────────────
+    async create(id, extra = {}) {
+      try {
+        const key = String(id);
+        await Model.findOneAndUpdate(
+          { id: key },
+          { id: key, ...defaultRecord, ...extra },
+          { upsert: true, new: true }
+        );
+        return this.get(key);
+      } catch (e) {
+        log.error(collectionName, `create(${id}): ${e.message}`);
+        return null;
+      }
     },
 
-    update(id, updates = {}) {
-      const db  = loadFile(filename, {});
-      const k   = String(id);
-      if (!db[k]) db[k] = { ...defaultRecord, id: k, createdAt: Date.now() };
-      Object.assign(db[k], updates, { updatedAt: Date.now() });
-      saveFile(filename, db);
-      return db[k];
+    // ── set (single key) ───────────────────────────────────────────────────
+    async set(id, key, value) {
+      try {
+        const key_ = String(id);
+        await Model.findOneAndUpdate(
+          { id: key_ },
+          { $set: { [key]: value } },
+          { upsert: true, new: true }
+        );
+        return this.get(key_);
+      } catch (e) {
+        log.error(collectionName, `set(${id}, ${key}): ${e.message}`);
+        return null;
+      }
     },
 
-    delete(id) {
-      const db  = loadFile(filename, {});
-      const key = String(id);
-      delete db[key];
-      saveFile(filename, db);
+    // ── update (multiple keys) ─────────────────────────────────────────────
+    async update(id, updates = {}) {
+      try {
+        const key = String(id);
+        await Model.findOneAndUpdate(
+          { id: key },
+          { $set: updates },
+          { upsert: true, new: true }
+        );
+        return this.get(key);
+      } catch (e) {
+        log.error(collectionName, `update(${id}): ${e.message}`);
+        return null;
+      }
     },
 
-    has(id) {
-      const db = loadFile(filename, {});
-      return Boolean(db[String(id)]);
+    // ── delete ─────────────────────────────────────────────────────────────
+    async delete(id) {
+      try {
+        await Model.deleteOne({ id: String(id) });
+      } catch (e) {
+        log.error(collectionName, `delete(${id}): ${e.message}`);
+      }
     },
 
-    count() {
-      return Object.keys(loadFile(filename, {})).length;
+    // ── has ────────────────────────────────────────────────────────────────
+    async has(id) {
+      try {
+        return !!(await Model.exists({ id: String(id) }));
+      } catch { return false; }
+    },
+
+    // ── count ──────────────────────────────────────────────────────────────
+    async count() {
+      try { return await Model.countDocuments(); }
+      catch { return 0; }
+    },
+
+    // ── getAll ─────────────────────────────────────────────────────────────
+    // Returns plain object { id: record } — same shape as JSON database
+    async getAll() {
+      try {
+        const docs = await Model.find({}).lean();
+        const result = {};
+        for (const doc of docs) {
+          const { _id, __v, createdAt, updatedAt, ...rest } = doc;
+          result[rest.id] = rest;
+        }
+        return result;
+      } catch (e) {
+        log.error(collectionName, `getAll(): ${e.message}`);
+        return {};
+      }
     },
   };
 }
 
-// ─── THREAD MODEL (per-chat settings) ────────────────────────────────────────
-const threadDefaultRecord = {
-  prefix:        null,   // per-thread prefix override
-  language:      "en",
-  adminOnly:     false,
-  welcomeMsg:    null,
-  leaveMsg:      null,
-  autoReact:     false,
-  blackList:     [],
-  data:          {},     // freeform storage for commands
-};
+// ── MODELS ────────────────────────────────────────────────────────────────────
+const threadsData   = createModel("threads",   { prefix: null, language: "en", adminOnly: false, disabledCmds: [], welcomeMsg: null, leaveMsg: null, data: {} });
+const usersData     = createModel("users",     { exp: 0, money: 0, name: "", messageCount: 0, data: {} });
+const globalData    = createModel("global",    { value: null, data: {} });
+const dashboardData = createModel("dashboard", {});
 
-// ─── USER MODEL ───────────────────────────────────────────────────────────────
-const userDefaultRecord = {
-  exp:       0,
-  money:     0,
-  name:      "",
-  data:      {},
-};
-
-// ─── GLOBAL DATA (shared key-value for commands) ──────────────────────────────
-const globalDefaultRecord = {
-  value: null,
-  data:  {},
-};
-
-const threadsData   = createModel("threads.json",   threadDefaultRecord);
-const usersData     = createModel("users.json",     userDefaultRecord);
-const globalData    = createModel("global.json",    globalDefaultRecord);
-const dashboardData = createModel("dashboard.json", {});
-
-module.exports = { threadsData, usersData, globalData, dashboardData };
+module.exports = { threadsData, usersData, globalData, dashboardData, connect };
