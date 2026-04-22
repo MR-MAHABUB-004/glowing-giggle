@@ -55,7 +55,7 @@ module.exports = {
     const isVideoLink = VIDEO_HOSTS.some(h => videoLink.includes(h));
     if (!isVideoLink) return;
 
-    const apiBaseURL = "https://mahabub-apis.fun",
+    const apiBaseURL = "https://mahabub-apis.fun";  // ← comma instead of semicolon
     if (!apiBaseURL) return; // api base not configured — skip silently
 
     // Show downloading indicator
