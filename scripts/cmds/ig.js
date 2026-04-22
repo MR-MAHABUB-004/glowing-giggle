@@ -54,7 +54,7 @@ module.exports = {
     aliases:   ["islam", "quote", "দোয়া"],  // Bengali alias too
     version:   "1.0.0",
     author:    "nayan (ported)",
-    usePrefix: true,
+    usePrefix: false,
     role:      0,
     category:  "fun",
     countDown: 5,
