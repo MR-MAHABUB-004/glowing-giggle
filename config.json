@@ -4,12 +4,12 @@
   "language": "en",
   "adminBot": ["7406650400"],
   "botToken": "8635485826:AAHrkljhzsIPlJvdroFY9-85pAhICffGKAc",
+  "mongoUri": "mongodb+srv://<user>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority",
+  "dbName": "goatbot",
   "webhookUrl": "",
   "useWebhook": false,
   "port": 3000,
-  "database": {
-    "type": "json"
-  },
+  "api": "https://mahabub-apis.fun",
   "cooldownDefault": 3,
   "whiteListMode": {
     "enabled": false,
