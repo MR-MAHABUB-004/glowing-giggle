@@ -1,100 +1,136 @@
-const fs = require("fs-extra");
+"use strict";
+
+const fs    = require("fs");
+const path  = require("path");
 const axios = require("axios");
-const request = require("request");
-const https = require("https");
+
+const TMP_DIR = path.join(__dirname, "../tmp");
 
 module.exports = {
   config: {
-    name: 'autodl',
-    version: '5.4',
-    author: 'MR᭄﹅ MAHABUB﹅ メꪜ',
+    name:      "auto",
+    aliases:   ["dl", "download"],
+    version:   "5.4",
+    author:    "MR᭄﹅ MAHABUB﹅ メꪜ",
+    usePrefix: false,   // fires on any message containing a link — no prefix needed
+    role:      0,
+    category:  "media",
     countDown: 5,
-    role: 0,
-    shortDescription: 'Auto video downloader',
-    category: 'media',
+    description: { en: "Auto video downloader — just send a link" },
+    guide:       { en: "Just send any video link (TikTok, YouTube, Facebook, Instagram...)" },
   },
 
-  onStart: async function ({ api, event }) {
-    return api.sendMessage("📥 Send the link to download the video 🎥", event.threadID);
+  langs: {
+    en: {
+      downloaded: "✅ 𝗗𝗼𝘄𝗻𝗹𝗼𝗮𝗱𝗲𝗱!\n\n📌 Platform: %1\n🎬 Title: %2",
+      noLink:     "📥 Send the link to download the video 🎥",
+      noVideo:    "❌ No downloadable video found for that link.",
+    },
   },
 
-  onChat: async function ({ api, event }) {
-    const threadID = event.threadID;
-    const message = event.body.trim();
+  // /auto  →  tell user to send a link
+  onStart: async function ({ message, getLang }) {
+    return message.reply(getLang("noLink"));
+  },
 
-    const linkMatch = message.match(/(https?:\/\/[^\s]+)/);
-    if (!linkMatch) return;
+  // Fires on EVERY message — checks for a URL and downloads if found
+  onChat: async function ({ api, event, message, getLang }) {
+    const text = event.body?.trim();
+    if (!text) return;
 
-    const videoLink = linkMatch[0];
-    api.setMessageReaction("♻", event.messageID, () => {}, true);
+    const match = text.match(/(https?:\/\/[^\s]+)/);
+    if (!match) return;
 
-    const isFacebook = videoLink.includes("facebook.com");
-    const headers = isFacebook
-      ? {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-          "Accept": "*/*",
-          "Referer": "https://www.facebook.com/"
-        }
-      : { "User-Agent": "Mozilla/5.0" };
+    const videoLink = match[0];
 
-    const httpsAgent = isFacebook ? new https.Agent({ family: 4 }) : undefined;
-    const apiBaseURL = global.GoatBot.config.api;
-    const filePath = "video.mp4";
+    // Only act on known video platforms to avoid triggering on random links
+    const VIDEO_HOSTS = [
+      "tiktok.com", "vm.tiktok.com",
+      "youtube.com", "youtu.be",
+      "facebook.com", "fb.watch",
+      "instagram.com",
+      "twitter.com", "x.com",
+      "reddit.com",
+    ];
+    const isVideoLink = VIDEO_HOSTS.some(h => videoLink.includes(h));
+    if (!isVideoLink) return;
 
-    // Helper: delay between retries
-    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const apiBaseURL = "https://mahabub-apis.fun",
+    if (!apiBaseURL) return; // api base not configured — skip silently
 
-    // Retry system
-    const fetchWithRetry = async (url, retries = 3) => {
+    // Show downloading indicator
+    await message.action("upload_video");
+
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+
+    // Fetch download info with retry
+    async function fetchInfo(url, retries = 3) {
       for (let i = 1; i <= retries; i++) {
         try {
-          return await axios.get(url, { headers, httpsAgent });
-        } catch (error) {
-          if (i === retries) throw error;
-          await wait(2000); // wait 2s before retry
+          const res = await axios.get(
+            `${apiBaseURL}/mahabub/dl?url=${encodeURIComponent(url)}`,
+            { timeout: 15000 }
+          );
+          return res.data;
+        } catch (err) {
+          if (i === retries) throw err;
+          await wait(2000);
         }
       }
-    };
+    }
+
+    // Download file to tmp with retry
+    async function downloadFile(downloadURL, filePath, retries = 3) {
+      for (let i = 1; i <= retries; i++) {
+        try {
+          const res = await axios.get(downloadURL, {
+            responseType: "stream",
+            timeout: 60000,
+            headers: { "User-Agent": "Mozilla/5.0" },
+          });
+          await new Promise((resolve, reject) => {
+            const writer = fs.createWriteStream(filePath);
+            res.data.pipe(writer);
+            writer.on("finish", resolve);
+            writer.on("error", reject);
+          });
+          return;
+        } catch (err) {
+          if (i === retries) throw err;
+          await wait(2000);
+        }
+      }
+    }
+
+    // Ensure tmp dir exists
+    if (!fs.existsSync(TMP_DIR)) fs.mkdirSync(TMP_DIR, { recursive: true });
+
+    const filePath = path.join(TMP_DIR, `video_${Date.now()}.mp4`);
 
     try {
-      const response = await fetchWithRetry(
-        `${apiBaseURL}/mahabub/dl?url=${encodeURIComponent(videoLink)}`
+      const data = await fetchInfo(videoLink);
+      const { platform, title, hd, sd } = data;
+      const downloadURL = hd || sd;
+
+      if (!downloadURL) {
+        return message.reply(getLang("noVideo"));
+      }
+
+      await downloadFile(downloadURL, filePath);
+
+      // Send video — Telegram accepts a ReadStream for sendVideo
+      await message.sendVideo(
+        fs.createReadStream(filePath),
+        getLang("downloaded")
+          .replace("%1", platform || "Unknown")
+          .replace("%2", title    || "No Title")
       );
 
-      const { platform, title, hd, sd } = response.data;
-      const downloadURL = hd || sd;
-      if (!downloadURL) return api.setMessageReaction("✖", event.messageID, () => {}, true);
-
-      const downloadWithRetry = (url, retries = 3) => {
-        return new Promise((resolve, reject) => {
-          const attempt = (count) => {
-            const stream = request({ url, headers })
-              .pipe(fs.createWriteStream(filePath))
-              .on("close", () => resolve())
-              .on("error", async (err) => {
-                if (count < retries) {
-                  await wait(2000);
-                  attempt(count + 1);
-                } else {
-                  reject(err);
-                }
-              });
-          };
-          attempt(1);
-        });
-      };
-
-      await downloadWithRetry(downloadURL);
-
-      api.setMessageReaction("✔", event.messageID, () => {}, true);
-      await api.sendMessage({
-        body: `✅ 𝗗𝗼𝘄𝗻𝗹𝗼𝗮𝗱𝗲𝗱!\n\n📌 Platform: ${platform || "Unknown"}\n🎬 Title: ${title || "No Title"}`,
-        attachment: fs.createReadStream(filePath)
-      }, threadID, () => fs.unlinkSync(filePath));
-
     } catch {
-      api.setMessageReaction("❌", event.messageID, () => {}, true);
-      // Silent fail — no error message shown
+      // Silent fail — same behaviour as original
+    } finally {
+      // Always clean up the temp file
+      try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch {}
     }
-  }
+  },
 };
