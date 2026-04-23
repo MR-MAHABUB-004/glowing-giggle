@@ -4,8 +4,8 @@ const os = require("os");
 
 module.exports = {
   config: {
-    name:      "info",
-    aliases:   ["uptime", "ping", "status"],
+    name:      "i",
+    aliases:   ["uptime", "p", "s"],
     version:   "1.0",
     author:    "System",
     usePrefix: true,
