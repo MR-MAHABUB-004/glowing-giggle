@@ -13,7 +13,7 @@
   "cooldownDefault": 3,
 
   "antiInbox": false,
-  "approval": false,
+  "approval": true,
 
   "reactBy": {
     "delete": ["🤬"],
