@@ -40,38 +40,24 @@ async function pollUntilReady(mediaUrl, maxWait = 120000) {
   throw new Error("Timeout — processing too slow.");
 }
 
-// ── Helper: send message as Promise ─────────────────────────────────
-function sendMsg(api, body, threadID, attachment = null) {
-  return new Promise((resolve, reject) => {
-    const payload = { body };
-    if (attachment) payload.attachment = attachment;
-    api.sendMessage(payload, threadID, (err, info) => {
-      if (err) return reject(err);
-      resolve(info);
-    });
-  });
-}
-
 module.exports = {
   config: {
     name:        "video",
     aliases:     ["yt", "ytdl"],
     version:     "3.1.0",
     author:      "MR᭄﹅ MAHABUB﹅ メꪜ",
-    role:        0,
     usePrefix:   true,
+    role:        0,
     countDown:   10,
-    description: "YouTube থেকে ভিডিও/অডিও ডাউনলোড",
-    category:    "Media",
-    guide:       { en: "{pn}video <name or YouTube URL>" }
+    category:    "media",
+    description: { en: "Download YouTube videos or audio." },
+    guide:       { en: "{pn} <name or YouTube URL>" }
   },
 
-  // ────────────────────────────────────────────────────────────────────
-  // onStart — user runs the command
-  // ────────────────────────────────────────────────────────────────────
-  onStart: async function ({ api, event, args, message }) {
-    const threadID = event.threadID;
-    const input    = args.join(" ").trim();
+  // ─── onStart ────────────────────────────────────────────────────────────────
+  onStart: async function ({ api, event, message, args }) {
+    const { threadID } = event;
+    const input = args.join(" ").trim();
 
     if (!input) {
       return message.reply(
@@ -79,7 +65,7 @@ module.exports = {
       );
     }
 
-    const waitInfo = await sendMsg(api, "🔍 খোঁজা হচ্ছে...", threadID).catch(() => null);
+    const waitMsg = await api.sendMessage(threadID, "🔍 খোঁজা হচ্ছে...");
 
     try {
       const isUrl = /youtu(be\.com|\.be)/i.test(input);
@@ -88,27 +74,31 @@ module.exports = {
         let videoTitle = input;
         let duration   = "?";
         try {
-          const videoIdMatch = input.match(/(?:v=|youtu\.be\/)([^&?/]+)/);
-          if (videoIdMatch) {
-            const info = await yts({ videoId: videoIdMatch[1] });
+          const m = input.match(/(?:v=|youtu\.be\/)([^&?/]+)/);
+          if (m) {
+            const info = await yts({ videoId: m[1] });
             videoTitle = info?.title || input;
             duration   = info?.duration?.timestamp || "?";
           }
         } catch (_) {}
 
-        if (waitInfo) await api.unsendMessage(waitInfo.messageID).catch(() => {});
+        await api.deleteMessage(threadID, waitMsg.message_id).catch(() => {});
         return this.processAndShow(api, event, message, input, videoTitle, duration);
 
       } else {
+        await api.editMessageText(
+          `🔍 *"${input}"* YouTube-এ খোঁজা হচ্ছে...`,
+          { chat_id: threadID, message_id: waitMsg.message_id, parse_mode: "Markdown" }
+        ).catch(() => {});
+
         const r       = await yts(input);
         const results = (r.videos || []).slice(0, 5);
 
         if (!results.length) throw new Error("কোনো ভিডিও পাওয়া যায়নি।");
 
-        if (waitInfo) await api.unsendMessage(waitInfo.messageID).catch(() => {});
-
-        // Only one result — go straight to processing
+        // Single result — skip the list
         if (results.length === 1) {
+          await api.deleteMessage(threadID, waitMsg.message_id).catch(() => {});
           return this.processAndShow(
             api, event, message,
             results[0].url,
@@ -117,112 +107,114 @@ module.exports = {
           );
         }
 
-        // Multiple results — show numbered list and wait for reply
-        let body = `🔍 "${input}" — Results:\n${"━".repeat(20)}\n`;
+        await api.deleteMessage(threadID, waitMsg.message_id).catch(() => {});
+
+        // Build search results list with inline buttons
+        let msg = `🔍 *"${input}"* — Results:\n${"━".repeat(20)}\n`;
         results.forEach((v, i) => {
-          body += `${i + 1}. ${v.title}\n   ⏱ ${v.duration?.timestamp || "?"} | 👁 ${v.views?.toLocaleString() || "?"}\n\n`;
+          msg += `*${i + 1}.* ${v.title}\n   ⏱ ${v.duration?.timestamp || "?"} | 👁 ${v.views?.toLocaleString() || "?"}\n\n`;
         });
-        body += `${"━".repeat(20)}\n`;
-        body += `▶️ ডাউনলোড করতে নম্বর reply করুন (1–${results.length})`;
+        msg += "━".repeat(20);
 
-        const listInfo = await sendMsg(api, body, threadID);
+        const btnRows = [];
+        for (let i = 0; i < results.length; i += 2) {
+          const row = [{ text: `▶️ ${i + 1}. ${results[i].title.slice(0, 25)}`, callback_data: `yts:${i}` }];
+          if (results[i + 1]) {
+            row.push({ text: `▶️ ${i + 2}. ${results[i + 1].title.slice(0, 25)}`, callback_data: `yts:${i + 1}` });
+          }
+          btnRows.push(row);
+        }
 
-        // Store results against this message for onReply
-        global.ytCache.set(`ytsearch_${threadID}_${listInfo.messageID}`, {
-          type:    "search",
+        const selMsg = await api.sendMessage(threadID, msg, {
+          parse_mode:   "Markdown",
+          reply_markup: { inline_keyboard: btnRows }
+        });
+
+        // Cache results keyed by the list message ID
+        global.ytCache.set(`ytsearch_${threadID}`, {
           results,
-          author:  event.senderID
-        });
-
-        // Register reply handler
-        global.GoatBot.onReply.set(listInfo.messageID, {
-          commandName: this.config.name,
-          messageID:   listInfo.messageID,
-          type:        "search",
-          threadID,
-          author:      event.senderID
+          msgId: selMsg.message_id
         });
       }
 
     } catch (err) {
-      if (waitInfo) await api.unsendMessage(waitInfo.messageID).catch(() => {});
+      await api.deleteMessage(threadID, waitMsg.message_id).catch(() => {});
       message.reply(`❌ ${err.message}`);
     }
   },
 
-  // ────────────────────────────────────────────────────────────────────
-  // onReply — handles both search selection and quality/format selection
-  // ────────────────────────────────────────────────────────────────────
-  onReply: async function ({ api, event, message, Reply }) {
-    const threadID = event.threadID;
-    const text     = (event.body || "").trim();
+  // ─── onCallbackQuery ────────────────────────────────────────────────────────
+  // callback_data formats:
+  //   yts:<idx>       — user picked search result #idx
+  //   ytdl:<idx>      — user picked quality/format #idx
+  onCallbackQuery: async function ({ api, event, message, callbackData }) {
+    const { threadID } = event;
 
-    if (!/^\d+$/.test(text)) {
-      return message.reply("❌ শুধু নম্বর লিখুন।");
-    }
+    // ── Stage 1: search result selection ──────────────────────────────────────
+    if (callbackData.startsWith("yts:")) {
+      const idx    = parseInt(callbackData.split(":")[1]);
+      const cached = global.ytCache.get(`ytsearch_${threadID}`);
 
-    const num = parseInt(text);
+      if (!cached) {
+        return message.reply("❌ Session শেষ। আবার .video চালান।");
+      }
 
-    // ── Stage 1: User picked a search result ──
-    if (Reply.type === "search") {
-      const cached = global.ytCache.get(`ytsearch_${threadID}_${Reply.messageID}`);
-      if (!cached) return message.reply("❌ Session শেষ। আবার .video চালান।");
+      const video = cached.results[idx];
+      if (!video) return message.reply("❌ ভিডিও পাওয়া যায়নি।");
 
-      const video = cached.results[num - 1];
-      if (!video) return message.reply(`❌ ${num} নম্বর ভিডিও নেই।`);
+      await api.deleteMessage(threadID, cached.msgId).catch(() => {});
+      global.ytCache.delete(`ytsearch_${threadID}`);
 
-      // Clean up
-      await api.unsendMessage(Reply.messageID).catch(() => {});
-      global.ytCache.delete(`ytsearch_${threadID}_${Reply.messageID}`);
-      global.GoatBot.onReply.delete(Reply.messageID);
-
-      const waitInfo = await sendMsg(
-        api,
-        `⚙️ "${video.title}" process হচ্ছে...`,
-        threadID
-      ).catch(() => null);
+      const waitMsg = await api.sendMessage(
+        threadID,
+        `⚙️ *"${video.title}"* process হচ্ছে...`,
+        { parse_mode: "Markdown" }
+      );
 
       return this.processAndShow(
         api, event, message,
         video.url,
         video.title,
         video.duration?.timestamp || "?",
-        waitInfo?.messageID || null
+        waitMsg.message_id
       );
     }
 
-    // ── Stage 2: User picked a quality/format ──
-    if (Reply.type === "quality") {
-      const cached = global.ytCache.get(`ytquality_${threadID}_${Reply.messageID}`);
-      if (!cached) return message.reply("❌ Session শেষ। আবার .video চালান।");
+    // ── Stage 2: quality/format selection ─────────────────────────────────────
+    if (callbackData.startsWith("ytdl:")) {
+      const idx    = parseInt(callbackData.split(":")[1]);
+      const cached = global.ytCache.get(`ytitem_${threadID}_${idx}`);
 
-      const chosen = cached.items[num - 1];
-      if (!chosen) return message.reply(`❌ ${num} নম্বর অপশন নেই।`);
+      if (!cached) {
+        return message.reply("❌ Session শেষ। আবার .video চালান।");
+      }
 
-      // Clean up
-      await api.unsendMessage(Reply.messageID).catch(() => {});
-      global.ytCache.delete(`ytquality_${threadID}_${Reply.messageID}`);
-      global.GoatBot.onReply.delete(Reply.messageID);
+      // Remove quality list message
+      await api.deleteMessage(threadID, cached.qualityMsgId).catch(() => {});
+      global.ytCache.delete(`ytitem_${threadID}_${idx}`);
 
-      return this.downloadItem(api, threadID, message, chosen.item, cached.title, cached.duration);
+      return this.downloadItem(api, threadID, message, cached.item, cached.title, cached.duration);
     }
   },
 
-  // ────────────────────────────────────────────────────────────────────
-  // processAndShow — call API, show quality list
-  // ────────────────────────────────────────────────────────────────────
+  // ─── processAndShow — call API, render quality/format list ──────────────────
   processAndShow: async function (api, event, message, youtubeUrl, videoTitle, duration, existingWaitMsgId = null) {
-    const threadID = event.threadID;
+    const { threadID } = event;
 
-    let waitInfo = null;
+    let waitMsgId;
     if (existingWaitMsgId) {
-      waitInfo = { messageID: existingWaitMsgId };
+      waitMsgId = existingWaitMsgId;
+      await api.editMessageText(
+        `⚙️ *"${videoTitle}"*\nServer-এ process হচ্ছে...`,
+        { chat_id: threadID, message_id: waitMsgId, parse_mode: "Markdown" }
+      ).catch(() => {});
     } else {
-      waitInfo = await sendMsg(
-        api,
-        `⚙️ "${videoTitle}"\nServer-এ process হচ্ছে...`,
-        threadID
-      ).catch(() => null);
+      const m   = await api.sendMessage(
+        threadID,
+        `⚙️ *"${videoTitle}"*\nServer-এ process হচ্ছে...`,
+        { parse_mode: "Markdown" }
+      );
+      waitMsgId = m.message_id;
     }
 
     try {
@@ -239,115 +231,136 @@ module.exports = {
       if (!videoItems.length && !audioItems.length)
         throw new Error("কোনো media পাওয়া যায়নি।");
 
-      if (waitInfo) await api.unsendMessage(waitInfo.messageID).catch(() => {});
+      await api.deleteMessage(threadID, waitMsgId).catch(() => {});
 
-      // Build numbered list
+      // Build quality list text + buttons
+      let msg = `🎬 *${title}*\n⏱ ${duration}\n${"━".repeat(20)}\n`;
       const allItems = [];
-      let body = `🎬 ${title}\n⏱ ${duration}\n${"━".repeat(20)}\n`;
+      const btnRows  = [];
 
       if (videoItems.length) {
-        body += `📹 Video:\n`;
+        msg += `📹 *Video:*\n`;
+        const vidBtns = [];
         videoItems.forEach(item => {
-          allItems.push({ item, label: `🎬 ${item.mediaRes || item.mediaQuality || "?"} (${item.mediaFileSize || "?"})` });
-          body += `  ${allItems.length}. ${item.mediaRes || item.mediaQuality || "?"} — ${item.mediaFileSize || "?"}\n`;
+          const idx  = allItems.length;
+          const size = item.mediaFileSize || "?";
+          const res  = item.mediaRes || item.mediaQuality || "?";
+          msg += `  *${idx + 1}.* ${res} — ${size}\n`;
+          vidBtns.push({ text: `🎬 ${res} (${size})`, callback_data: `ytdl:${idx}` });
+          allItems.push(item);
         });
+        for (let i = 0; i < vidBtns.length; i += 2) {
+          const row = [vidBtns[i]];
+          if (vidBtns[i + 1]) row.push(vidBtns[i + 1]);
+          btnRows.push(row);
+        }
       }
 
       if (audioItems.length) {
-        body += `\n🎵 Audio:\n`;
+        msg += `\n🎵 *Audio:*\n`;
+        const audBtns = [];
         audioItems.forEach(item => {
-          allItems.push({ item, label: `🎵 ${item.mediaExtension || "M4A"} ${item.mediaQuality || "?"} (${item.mediaFileSize || "?"})` });
-          body += `  ${allItems.length}. ${item.mediaExtension || "M4A"} ${item.mediaQuality || "?"} — ${item.mediaFileSize || "?"}\n`;
+          const idx  = allItems.length;
+          const size = item.mediaFileSize || "?";
+          const ext  = item.mediaExtension || "M4A";
+          const q    = item.mediaQuality   || "?";
+          msg += `  *${idx + 1}.* ${ext} ${q} — ${size}\n`;
+          audBtns.push({ text: `🎵 ${ext} ${q} (${size})`, callback_data: `ytdl:${idx}` });
+          allItems.push(item);
+        });
+        for (let i = 0; i < audBtns.length; i += 2) {
+          const row = [audBtns[i]];
+          if (audBtns[i + 1]) row.push(audBtns[i + 1]);
+          btnRows.push(row);
+        }
+      }
+
+      msg += "━".repeat(20);
+
+      // Send quality list (with thumbnail if available)
+      let qualityMsg;
+      try {
+        qualityMsg = thumbnail
+          ? await api.sendPhoto(threadID, thumbnail, {
+              caption:      msg,
+              parse_mode:   "Markdown",
+              reply_markup: { inline_keyboard: btnRows }
+            })
+          : await api.sendMessage(threadID, msg, {
+              parse_mode:   "Markdown",
+              reply_markup: { inline_keyboard: btnRows }
+            });
+      } catch (_) {
+        qualityMsg = await api.sendMessage(threadID, msg, {
+          parse_mode:   "Markdown",
+          reply_markup: { inline_keyboard: btnRows }
         });
       }
 
-      body += `${"━".repeat(20)}\n`;
-      body += `⬇️ নম্বর reply করুন ডাউনলোড করতে (1–${allItems.length})`;
-
-      // Try to send thumbnail + text, fall back to text only
-      let qualityInfo;
-      if (thumbnail) {
-        try {
-          const imgRes = await axios.get(thumbnail, {
-            responseType: "stream", timeout: 15000,
-            headers: { "User-Agent": "Mozilla/5.0" }
-          });
-          qualityInfo = await new Promise((resolve, reject) => {
-            api.sendMessage(
-              { body, attachment: imgRes.data },
-              threadID,
-              (err, info) => (err ? reject(err) : resolve(info))
-            );
-          });
-        } catch (_) {
-          qualityInfo = await sendMsg(api, body, threadID);
-        }
-      } else {
-        qualityInfo = await sendMsg(api, body, threadID);
-      }
-
-      // Store items and register reply
-      global.ytCache.set(`ytquality_${threadID}_${qualityInfo.messageID}`, {
-        items: allItems,
-        title,
-        duration,
-        author: event.senderID
-      });
-
-      global.GoatBot.onReply.set(qualityInfo.messageID, {
-        commandName: this.config.name,
-        messageID:   qualityInfo.messageID,
-        type:        "quality",
-        threadID,
-        author:      event.senderID
+      // Cache each item — include quality message ID so we can delete it on selection
+      allItems.forEach((item, idx) => {
+        global.ytCache.set(`ytitem_${threadID}_${idx}`, {
+          item,
+          title,
+          duration,
+          qualityMsgId: qualityMsg.message_id
+        });
       });
 
     } catch (err) {
-      if (waitInfo) await api.unsendMessage(waitInfo.messageID).catch(() => {});
+      await api.deleteMessage(threadID, waitMsgId).catch(() => {});
       message.reply(`❌ ${err.message}`);
     }
   },
 
-  // ────────────────────────────────────────────────────────────────────
-  // downloadItem — poll, download, send as FB attachment
-  // ────────────────────────────────────────────────────────────────────
+  // ─── downloadItem ────────────────────────────────────────────────────────────
   downloadItem: async function (api, threadID, message, item, title, duration) {
     const { mediaUrl, mediaFileSize, mediaExtension, mediaQuality, mediaRes, type } = item;
     const ext  = (mediaExtension || "mp4").toLowerCase();
     const qual = mediaRes || mediaQuality || "";
 
-    const waitInfo = await sendMsg(
-      api,
-      `⏳ "${title}"\n${type === "Audio" ? "🎵" : "🎬"} ${qual} — ${mediaFileSize}\n🔄 Processing...`,
-      threadID
-    ).catch(() => null);
+    const waitMsg = await api.sendMessage(
+      threadID,
+      `⏳ *"${title}"*\n${type === "Audio" ? "🎵" : "🎬"} ${qual} — ${mediaFileSize}\n🔄 Processing...`,
+      { parse_mode: "Markdown" }
+    );
 
     const tmpPath = path.join(__dirname, `ytdl_${Date.now()}.${ext}`);
 
     try {
       const result  = await pollUntilReady(mediaUrl);
-      const sizeStr = result.fileSize || mediaFileSize || "?";
+      const sizeStr = result.fileSize || mediaFileSize || "0 MB";
 
-      // Size check — Facebook limit is ~25 MB
       let sizeMB = 0;
-      const sizeMatch = sizeStr.match(/([\d.]+)\s*(MB|GB|KB)/i);
-      if (sizeMatch) {
-        sizeMB = parseFloat(sizeMatch[1]);
-        const unit = sizeMatch[2].toUpperCase();
+      const m = sizeStr.match(/([\d.]+)\s*(MB|GB|KB)/i);
+      if (m) {
+        sizeMB = parseFloat(m[1]);
+        const unit = m[2].toUpperCase();
         if (unit === "GB") sizeMB *= 1024;
         if (unit === "KB") sizeMB /= 1024;
       }
 
-      const caption = `${type === "Audio" ? "🎵" : "🎬"} ${title}\n📊 ${qual} — ${sizeStr}\n⏱ ${duration}`;
+      const caption = `🎬 *${title}*\n📊 ${qual} — ${sizeStr}\n⏱ ${duration}`;
+      const dlBtn   = [[{ text: "⬇️ Download Now", url: result.fileUrl }]];
 
-      if (sizeMB > 25) {
-        if (waitInfo) await api.unsendMessage(waitInfo.messageID).catch(() => {});
-        return message.reply(
-          `${caption}\n\n⚠️ ফাইল ২৫ MB-এর বড় (Facebook Limit)।\n🌐 সরাসরি ডাউনলোড: ${result.fileUrl}`
+      // Over 49 MB — just send the direct link
+      if (sizeMB > 49) {
+        await api.deleteMessage(threadID, waitMsg.message_id).catch(() => {});
+        return api.sendMessage(
+          threadID,
+          `${caption}\n\n⚠️ ফাইল ৫০ MB-এর বড় (Telegram Limit), সরাসরি ডাউনলোড করুন।`,
+          {
+            parse_mode:   "Markdown",
+            reply_markup: { inline_keyboard: dlBtn }
+          }
         );
       }
 
-      // Download to temp file
+      await api.editMessageText(
+        `⏳ *"${title}"*\n📥 ডাউনলোড হচ্ছে... (${sizeStr})`,
+        { chat_id: threadID, message_id: waitMsg.message_id, parse_mode: "Markdown" }
+      ).catch(() => {});
+
       const response = await axios({
         method:       "GET",
         url:          result.fileUrl,
@@ -363,26 +376,33 @@ module.exports = {
         const writer = fs.createWriteStream(tmpPath);
         response.data.pipe(writer);
         writer.on("finish", resolve);
-        writer.on("error", reject);
+        writer.on("error",  reject);
         response.data.on("error", reject);
       });
 
       const stat = fs.statSync(tmpPath);
       if (stat.size < 1024) throw new Error("Empty file downloaded");
 
-      if (waitInfo) await api.unsendMessage(waitInfo.messageID).catch(() => {});
+      await api.deleteMessage(threadID, waitMsg.message_id).catch(() => {});
 
-      // Send as FB attachment
-      await new Promise((resolve, reject) => {
-        api.sendMessage(
-          { body: caption, attachment: fs.createReadStream(tmpPath) },
-          threadID,
-          (err, info) => (err ? reject(err) : resolve(info))
-        );
-      });
+      if (type === "Audio") {
+        await api.sendAudio(threadID, fs.createReadStream(tmpPath), {
+          caption,
+          parse_mode:   "Markdown",
+          title,
+          reply_markup: { inline_keyboard: dlBtn }
+        });
+      } else {
+        await api.sendVideo(threadID, fs.createReadStream(tmpPath), {
+          caption,
+          parse_mode:         "Markdown",
+          supports_streaming: true,
+          reply_markup:       { inline_keyboard: dlBtn }
+        });
+      }
 
     } catch (err) {
-      if (waitInfo) await api.unsendMessage(waitInfo.messageID).catch(() => {});
+      await api.deleteMessage(threadID, waitMsg.message_id).catch(() => {});
       message.reply(`❌ ডাউনলোড ব্যর্থ: ${err.message}`);
     } finally {
       if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
