@@ -18,6 +18,8 @@ const config   = require("../config.json");
 // ── CONNECTION ────────────────────────────────────────────────────────────────
 let _connected = false;
 
+mongoose.set("strictQuery", false); // suppress Mongoose 7 deprecation warning
+
 async function connect() {
   if (_connected) return;
   if (!config.mongoUri) {
