@@ -23,7 +23,7 @@ module.exports = {
   },
 
   onStart: async function ({ message, args, getLang }) {
-    const text = args.join(" ");
+    const text = args.join(" ").trim();
     if (!text) return message.reply(getLang("noMsg"));
 
     await message.reply(getLang("sending"));
