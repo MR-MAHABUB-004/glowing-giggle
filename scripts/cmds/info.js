@@ -1,56 +1,123 @@
 "use strict";
 
-const os = require("os");
+const axios  = require("axios");
+const moment = require("moment-timezone");
+const fs     = require("fs");
+const path   = require("path");
+
+const TMP_DIR = path.join(__dirname, "../tmp");
 
 module.exports = {
   config: {
-    name:      "i",
-    aliases:   ["uptime", "p", "s"],
-    version:   "1.0",
-    author:    "System",
+    name:      "info",
+    aliases:   ["inf", "in4"],
+    version:   "2.6",
+    author:    "MR᭄﹅ MAHABUB﹅ メꪜ",
     usePrefix: true,
     role:      0,
-    category:  "info",
+    category:  "information",
     countDown: 5,
-    description: { en: "Show bot status, uptime and system info" },
+    description: { en: "Sends bot and admin info along with a video." },
     guide:       { en: "{pn}" },
   },
 
   langs: {
     en: {
-      title: "🤖 *Bot Status*",
+      wait:  "𝑾𝒂𝒊𝒕 𝒃𝒂𝒃𝒚... 𝑳𝒐𝒂𝒅𝒊𝒏𝒈 𝒂𝒖𝒕𝒉𝒐𝒓 𝒊𝒏𝒇𝒐 😘",
+      error: "❌ 𝑬𝒓𝒓𝒐𝒓 𝒇𝒆𝒕𝒄𝒉𝒊𝒏𝒈 𝒗𝒊𝒅𝒆𝒐. 𝑷𝒍𝒆𝒂𝒔𝒆 𝒕𝒓𝒚 𝒂𝒈𝒂𝒊𝒏 𝒍𝒂𝒕𝒆𝒓.",
     },
   },
 
-  onStart: async function ({ message, getLang }) {
-    const { config, commands, eventCommands, startTime, bot } = global.GoatBot;
+  onStart: async function ({ message, getLang, prefix }) {
+    await this.sendInfo(message, getLang, prefix);
+  },
 
-    if (!global._botInfo) {
-      try { global._botInfo = await bot.getMe(); } catch { global._botInfo = {}; }
+  // Typing "info" (no prefix) also triggers
+  onChat: async function ({ event, message, getLang, prefix }) {
+    if (event.body?.trim().toLowerCase() === "info") {
+      await this.sendInfo(message, getLang, prefix);
+    }
+  },
+
+  sendInfo: async function (message, getLang, prefix) {
+    // Send wait message then auto-delete after 4s
+    const waitMsg = await message.reply(getLang("wait"));
+    if (waitMsg?.message_id) {
+      setTimeout(() => message.delete(waitMsg.message_id).catch(() => {}), 4000);
     }
 
-    const uptimeSec = Math.floor((Date.now() - startTime) / 1000);
-    const d  = Math.floor(uptimeSec / 86400);
-    const h  = Math.floor((uptimeSec % 86400) / 3600);
-    const m  = Math.floor((uptimeSec % 3600) / 60);
-    const s  = uptimeSec % 60;
+    const botName    = "𝑴𝑨𝑯𝑨𝑩𝑼𝑩-𝑩𝑶𝑻";
+    const botPrefix  = prefix || global.GoatBot.config.prefix;
+    const authorName = "𝑴𝑨𝑯𝑨𝑩𝑼𝑩 𝑹𝑨𝑯𝑴𝑨𝑵";
+    const authorFB   = "https://www.facebook.com/www.xnxx.com140";
+    const authorInst = "@mahabub_rahman_404";
+    const status     = "𝑺𝑰𝑵𝑮𝑳𝑬..!";
 
-    const totalMem = os.totalmem();
-    const usedMem  = totalMem - os.freemem();
-    const memPct   = Math.round((usedMem / totalMem) * 100);
+    const now       = moment().tz("Asia/Dhaka");
+    const date      = now.format("dddd, MMMM Do YYYY");
+    const time      = now.format("h:mm:ss A");
 
-    const ping = Date.now();
+    const uptime    = process.uptime();
+    const d = Math.floor(uptime / 86400);
+    const h = Math.floor((uptime % 86400) / 3600);
+    const m = Math.floor((uptime % 3600) / 60);
+    const s = Math.floor(uptime % 60);
+    const uptimeStr = `${d}d ${h}h ${m}m ${s}s`.replace(/^0d 0h /, "");
 
-    return message.reply(
-      `${getLang("title")}\n\n` +
-      `🏷 *Name:* ${config.botName}\n` +
-      `👤 *Username:* @${global._botInfo.username || "unknown"}\n` +
-      `⏱ *Uptime:* ${d}d ${h}h ${m}m ${s}s\n` +
-      `📦 *Commands:* ${commands.size}\n` +
-      `⚡ *Events:* ${eventCommands.size}\n` +
-      `💾 *Memory:* ${Math.round(usedMem / 1024 / 1024)}MB / ${Math.round(totalMem / 1024 / 1024)}MB (${memPct}%)\n` +
-      `🖥 *Platform:* ${os.platform()} ${os.arch()}\n` +
-      `🟢 *Status:* Online`
-    );
+    const body =
+`╭─╼━━━[ 🌟 𝑩𝑶𝑻 & 𝑨𝑼𝑻𝑯𝑶𝑹 𝑰𝑵𝑭𝑶 🌟 ]━━━╾─╮
+┃
+┃ 👤 𝑶𝒘𝒏𝒆𝒓: ${authorName}
+┃ 🤖 𝑩𝒐𝒕 𝑵𝒂𝒎𝒆: ${botName}
+┃ 🔰 𝑷𝒓𝒆𝒇𝒊𝒙: ${botPrefix}
+┃ ❤ 𝑹𝒆𝒍𝒂𝒕𝒊𝒐𝒏: ${status}
+┃
+┃ 📆 𝑫𝒂𝒕𝒆: ${date}
+┃ ⏰ 𝑻𝒊𝒎𝒆: ${time}
+┃ ⚙ 𝑼𝒑𝒕𝒊𝒎𝒆: ${uptimeStr}
+┃
+┃ 🌐 𝑭𝒂𝒄𝒆𝒃𝒐𝒐𝒌: ${authorFB}
+┃ 📸 𝑰𝒏𝒔𝒕𝒂: ${authorInst}
+┃
+╰─╼━━━━━━━━━━━━━━━━━━━━━━━━━━━━╾─╯`;
+
+    if (!fs.existsSync(TMP_DIR)) fs.mkdirSync(TMP_DIR, { recursive: true });
+    const tmpPath = path.join(TMP_DIR, `info_${Date.now()}.mp4`);
+
+    try {
+      const apiRes = await axios.get("https://mahabub-apis.vercel.app/info");
+      if (!apiRes.data?.data) throw new Error("Invalid API response");
+
+      let videoUrl = apiRes.data.data;
+
+      // Convert Google Drive share link → direct download
+      if (videoUrl.includes("drive.google.com")) {
+        const match = videoUrl.match(/[-\w]{25,}/);
+        if (match) videoUrl = `https://drive.google.com/uc?id=${match[0]}`;
+      }
+
+      const dlRes = await axios.get(videoUrl, {
+        responseType: "stream",
+        timeout:      60000,
+        headers:      { "User-Agent": "Mozilla/5.0" },
+      });
+
+      await new Promise((resolve, reject) => {
+        const writer = fs.createWriteStream(tmpPath);
+        dlRes.data.pipe(writer);
+        writer.on("finish", resolve);
+        writer.on("error", reject);
+      });
+
+      // Send video with info card as caption
+      await message.sendVideo(fs.createReadStream(tmpPath), body);
+
+    } catch (err) {
+      console.error("info error:", err.message);
+      // Fallback — text only if video fails
+      await message.reply(body).catch(() => {});
+    } finally {
+      try { if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath); } catch {}
+    }
   },
 };
