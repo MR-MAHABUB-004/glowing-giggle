@@ -77,7 +77,7 @@ bot.on("polling_error",    err   => log.error("POLLING", err.code || err.message
 const { threadsData } = require("./core/database.js");
 
 global.broadcast = async function(text, opts = {}) {
-  const all = Object.values(threadsData.getAll());
+  const all = Object.values(await threadsData.getAll());
   let sent = 0, failed = 0;
   for (const chat of all) {
     try {
@@ -115,7 +115,7 @@ app.get("/api/stats", async (req, res) => {
     try { global._botInfo = await bot.getMe(); } catch { global._botInfo = {}; }
   }
 
-  const allChats = Object.values(threadsData.getAll());
+  const allChats = Object.values(await threadsData.getAll());
   const groups   = allChats.filter(c => c.type === "group" || c.type === "supergroup");
   const privates = allChats.filter(c => c.type === "private");
   const totalMem = os.totalmem();
