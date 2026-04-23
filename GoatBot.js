@@ -51,17 +51,12 @@ if (config.useWebhook && config.webhookUrl) {
 } else {
   log.info("BOT", "Polling mode");
   bot = new TelegramBot(config.botToken, {
-    polling: {
-      interval:  300,
-      autoStart: true,
-      params: {
-        timeout:         10,
-        allowed_updates: [
-          "message", "callback_query", "message_reaction",
-          "my_chat_member", "chat_member",
-        ],
-      },
-    },
+    polling: true,
+    // Enable message_reaction updates
+    allowed_updates: [
+      "message", "callback_query", "message_reaction",
+      "my_chat_member", "chat_member",
+    ],
   });
 }
 
