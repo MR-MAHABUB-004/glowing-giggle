@@ -16,8 +16,8 @@
   "approval": false,
 
   "reactBy": {
-    "delete": ["👎"],
-    "kick":   ["🤬"]
+    "delete": ["🤬"],
+    "kick":   ["👎"]
   },
 
   "whiteListMode": {
