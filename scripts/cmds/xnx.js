@@ -30,110 +30,84 @@ async function fetchWithRetry(url, params, retries = 3) {
   }
 }
 
-// ── Helper: send message and return messageID as a Promise ──────────
-function sendMsg(api, body, threadID, extra = {}) {
-  return new Promise((resolve, reject) => {
-    api.sendMessage({ body, ...extra }, threadID, (err, info) => {
-      if (err) return reject(err);
-      resolve(info);
-    });
-  });
-}
-
 module.exports = {
   config: {
     name:        "xnx",
     aliases:     ["xnxx"],
     version:     "13.0.0",
     author:      "MR᭄﹅ MAHABUB﹅ メꪜ",
-    role:        0,           // 0 = everyone, 1 = admin, 2 = owner
     usePrefix:   true,
-    countDown:   5,           // seconds cooldown
-    description: "Search videos with thumbnails, reply with number to download",
-    category:    "Media",
-    guide:       { en: "{pn} xnx <query> — then reply with a number to download" }
+    role:        0,
+    countDown:   5,
+    category:    "media",
+    description: { en: "Search videos with thumbnails, click a title button to download." },
+    guide:       { en: "{pn} <query>" }
   },
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // onStart — triggered when user runs the command
-  // ────────────────────────────────────────────────────────────────────────────
-  onStart: async function ({ api, event, args, message }) {
-    const threadID = event.threadID;
-    const query    = args.join(" ").trim();
+  // ─── onStart ────────────────────────────────────────────────────────────────
+  onStart: async function ({ api, event, message, args }) {
+    const { threadID } = event;
+    const query = args.join(" ").trim();
 
     if (!query) {
       return message.reply(
-        "📌 ব্যবহার:\n.xnx <নাম> — সার্চ করুন\nলিস্ট আসলে নম্বর reply করুন ডাউনলোড করতে"
+        "📌 ব্যবহার:\n.xnx <নাম> — সার্চ করুন\nটাইটেল বাটনে ক্লিক করুন ডাউনলোড করতে"
       );
     }
 
-    return this.handleSearch(api, event, message, query, 1);
+    await this.deleteSessionMessages(message, threadID);
+    return this.handleSearch(api, message, threadID, query, 1);
   },
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // onReply — triggered when user replies to the bot's list message
-  // ────────────────────────────────────────────────────────────────────────────
-  onReply: async function ({ api, event, message, Reply }) {
-    const threadID = event.threadID;
-    const text     = (event.body || "").trim();
-    const { query, page } = Reply; // data stored when we registered the reply
+  // ─── onCallbackQuery ────────────────────────────────────────────────────────
+  // Fires when user taps any inline button sent by this command.
+  // callback_data format:
+  //   xnx:pg:<page>:<query>   — pagination
+  //   xnx:dl:<num>            — download video #num
+  onCallbackQuery: async function ({ api, event, message, callbackData }) {
+    const { threadID } = event;
+    const parts  = callbackData.split(":");
+    const action = parts[1];
 
-    // ── Navigation ──
-    if (text.toLowerCase() === "next" || text === ">") {
-      await this.deleteSessionMessages(api, threadID);
-      return this.handleSearch(api, event, message, query, page + 1);
-    }
-    if ((text.toLowerCase() === "prev" || text === "<") && page > 1) {
-      await this.deleteSessionMessages(api, threadID);
-      return this.handleSearch(api, event, message, query, page - 1);
-    }
-
-    // ── Numbered selection ──
-    if (!/^\d+$/.test(text)) {
-      return message.reply("❌ শুধু নম্বর লিখুন (যেমন: 1, 2, 3...)");
+    if (action === "pg") {
+      const page  = parseInt(parts[2]);
+      const query = parts.slice(3).join(":");
+      await this.deleteSessionMessages(message, threadID);
+      return this.handleSearch(api, message, threadID, query, page);
     }
 
-    const num     = parseInt(text);
-    const vidData = global.videoCache.get(`v_${threadID}_${num}`);
-    if (!vidData) {
-      return message.reply(`❌ ${num} নম্বর ভিডিও ক্যাশে নেই বা সেশন শেষ।`);
+    if (action === "dl") {
+      const num     = parseInt(parts[2]);
+      const vidData = global.videoCache.get(`v_${threadID}_${num}`);
+      if (!vidData) return message.reply(`❌ ${num} নম্বর ভিডিও ক্যাশে নেই বা সেশন শেষ।`);
+      await this.deleteSessionMessages(message, threadID);
+      return this.downloadAndSend(api, message, threadID, vidData);
     }
-
-    await this.deleteSessionMessages(api, threadID);
-    return this.downloadAndSend(api, threadID, message, vidData);
   },
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // deleteSessionMessages — unsend all tracked messages for this thread
-  // ────────────────────────────────────────────────────────────────────────────
-  deleteSessionMessages: async function (api, threadID) {
+  // ─── Helpers ────────────────────────────────────────────────────────────────
+  deleteSessionMessages: async function (message, threadID) {
     const ids = global.videoCache.get(`msgs_${threadID}`) || [];
     for (const msgId of ids) {
-      await api.unsendMessage(msgId).catch(() => {});
+      await message.delete(msgId).catch(() => {});
     }
     global.videoCache.delete(`msgs_${threadID}`);
     global.videoCache.delete(`ses_${threadID}`);
   },
 
   saveMsgId: function (threadID, msgId) {
-    const key = `msgs_${threadID}`;
-    const ids = global.videoCache.get(key) || [];
+    const ids = global.videoCache.get(`msgs_${threadID}`) || [];
     ids.push(msgId);
-    global.videoCache.set(key, ids);
+    global.videoCache.set(`msgs_${threadID}`, ids);
   },
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // handleSearch — fetch results, send thumbnails + numbered list
-  // ────────────────────────────────────────────────────────────────────────────
-  handleSearch: async function (api, event, message, query, page) {
-    const threadID = event.threadID;
-
-    // Loading indicator
-    const loadInfo = await sendMsg(
-      api,
-      `🔍 "${query}" — Page ${page} লোড হচ্ছে...`,
-      threadID
-    ).catch(() => null);
+  // ─── Search + thumbnails + title buttons ────────────────────────────────────
+  handleSearch: async function (api, message, threadID, query, page) {
+    const loadMsg = await api.sendMessage(
+      threadID,
+      `🔍 *"${query}"* — Page ${page} লোড হচ্ছে...`,
+      { parse_mode: "Markdown" }
+    );
 
     try {
       const res  = await fetchWithRetry(
@@ -142,9 +116,9 @@ module.exports = {
       );
       const data = res.data;
 
-      if (loadInfo) await api.unsendMessage(loadInfo.messageID).catch(() => {});
+      await api.deleteMessage(threadID, loadMsg.message_id).catch(() => {});
 
-      if (!data || !data.status || !Array.isArray(data.videos) || data.videos.length === 0) {
+      if (!data?.status || !Array.isArray(data.videos) || !data.videos.length) {
         return message.reply(`❌ Page ${page} — কোনো ভিডিও পাওয়া যায়নি।`);
       }
 
@@ -152,115 +126,100 @@ module.exports = {
       const hasNext = !!data.next;
       const hasPrev = page > 1;
 
-      // ── সেশন সেভ ──
+      // Session + video cache
       global.videoCache.set(`ses_${threadID}`, { query, page });
-
-      // ── ভিডিও ক্যাশ ──
       videos.forEach((vid, i) => {
-        const num     = i + 1;
-        const minutes = parseDurationToMinutes(vid.duration);
-        global.videoCache.set(`v_${threadID}_${num}`, {
-          title:     vid.title     || `Video ${num}`,
+        const mins = parseDurationToMinutes(vid.duration);
+        global.videoCache.set(`v_${threadID}_${i + 1}`, {
+          title:     vid.title     || `Video ${i + 1}`,
           video_url: vid.video_url || null,
           referer:   vid.link      || "https://www.desitales2.com/",
           duration:  vid.duration  || "?",
           views:     vid.views     || "?",
           rating:    vid.rating    || "?",
           thumbnail: vid.thumbnail || null,
-          isLong:    minutes >= LONG_VIDEO_MINUTES
+          isLong:    mins >= LONG_VIDEO_MINUTES
         });
       });
 
-      // ── থামনেইল পাঠানো (আলাদা আলাদা attachment) ──
-      for (let i = 0; i < videos.length; i++) {
-        const vid = videos[i];
-        if (!vid.thumbnail) continue;
-        const num     = i + 1;
-        const minutes = parseDurationToMinutes(vid.duration);
-        const icon    = minutes >= LONG_VIDEO_MINUTES ? "🌐" : "📥";
-
+      // ── Thumbnails as media group ──
+      const withThumb = videos.filter(v => v.thumbnail);
+      if (withThumb.length) {
         try {
-          // Stream the thumbnail so we don't hit FB's URL restrictions
-          const imgRes = await axios.get(vid.thumbnail, {
-            responseType: "stream",
-            timeout:      15000,
-            headers:      { "User-Agent": "Mozilla/5.0" }
+          const mediaGroup = withThumb.map(vid => {
+            const num  = videos.indexOf(vid) + 1;
+            const icon = parseDurationToMinutes(vid.duration) >= LONG_VIDEO_MINUTES ? "🌐" : "📥";
+            return {
+              type:       "photo",
+              media:      vid.thumbnail,
+              caption:    `*${num}.* ${icon} ${vid.title || "?"}\n⏱ ${vid.duration || "?"} | 👁 ${vid.views || "?"} | ⭐ ${vid.rating || "?"}`,
+              parse_mode: "Markdown"
+            };
           });
-
-          const sentThumb = await new Promise((resolve, reject) => {
-            api.sendMessage(
-              {
-                body:       `${num}. ${icon} ${vid.title || "?"}\n⏱ ${vid.duration || "?"} | 👁 ${vid.views || "?"} | ⭐ ${vid.rating || "?"}`,
-                attachment: imgRes.data
-              },
-              threadID,
-              (err, info) => (err ? reject(err) : resolve(info))
-            );
-          });
-
-          this.saveMsgId(threadID, sentThumb.messageID);
+          const albumMsgs = await api.sendMediaGroup(threadID, mediaGroup);
+          if (Array.isArray(albumMsgs)) {
+            albumMsgs.forEach(m => this.saveMsgId(threadID, m.message_id));
+          }
         } catch (_) {
-          // Thumbnail failed — skip silently, list still shows below
+          // Fallback: send one by one
+          for (let i = 0; i < videos.length; i++) {
+            if (!videos[i].thumbnail) continue;
+            try {
+              const s = await api.sendPhoto(threadID, videos[i].thumbnail, {
+                caption:    `*${i + 1}.* ${videos[i].title || "?"}\n⏱ ${videos[i].duration || "?"}`,
+                parse_mode: "Markdown"
+              });
+              this.saveMsgId(threadID, s.message_id);
+            } catch (_) {}
+          }
         }
       }
 
-      // ── নম্বর লিস্ট ──
-      let listBody = `📋 "${query}" — Page ${page}\n${"━".repeat(20)}\n`;
-      videos.forEach((vid, i) => {
-        const num     = i + 1;
-        const minutes = parseDurationToMinutes(vid.duration);
-        const icon    = minutes >= LONG_VIDEO_MINUTES ? "🌐" : "📥";
-        listBody += `${icon} ${num}. ${vid.title || `Video ${num}`}\n   ⏱ ${vid.duration || "?"} | 👁 ${vid.views || "?"}\n`;
+      // ── Title buttons (one row per video) ──
+      const videoRows = videos.map((vid, i) => {
+        const num  = i + 1;
+        const icon = parseDurationToMinutes(vid.duration) >= LONG_VIDEO_MINUTES ? "🌐" : "📥";
+        return [{ text: `${icon} ${vid.title || `Video ${num}`}`, callback_data: `xnx:dl:${num}` }];
       });
 
-      listBody += `\n${"━".repeat(20)}\n`;
-      listBody += `⬇️ ডাউনলোড করতে নম্বর reply করুন (1–${videos.length})`;
-      if (hasPrev) listBody += `\n◀️ আগের পেজ: "prev" লিখুন`;
-      if (hasNext) listBody += `\n▶️ পরের পেজ:  "next" লিখুন`;
+      // ── Navigation buttons ──
+      const navRow = [];
+      const safeQ  = query.length > 30 ? query.slice(0, 30) : query;
+      if (hasPrev) navRow.push({ text: `⬅️ Page ${page - 1}`, callback_data: `xnx:pg:${page - 1}:${safeQ}` });
+      if (hasNext) navRow.push({ text: `Page ${page + 1} ➡️`, callback_data: `xnx:pg:${page + 1}:${safeQ}` });
+      if (navRow.length) videoRows.push(navRow);
 
-      // Send the list and register onReply so replies come back here
-      const listInfo = await new Promise((resolve, reject) => {
-        api.sendMessage({ body: listBody }, threadID, (err, info) => {
-          if (err) return reject(err);
-          resolve(info);
-        });
-      });
-
-      this.saveMsgId(threadID, listInfo.messageID);
-
-      // ── Reply tracker ──
-      // When someone replies to THIS message, GoatBot's main handler
-      // will look up onReply by the replied-to messageID and call
-      // this command's onReply with the stored data.
-      global.GoatBot.onReply.set(listInfo.messageID, {
-        commandName: this.config.name,
-        messageID:   listInfo.messageID,
-        author:      event.senderID,
-        query,
-        page
-      });
+      const sentList = await api.sendMessage(
+        threadID,
+        `📋 *"${query}"* — Page ${page}\n${"━".repeat(20)}\n⬇️ *ডাউনলোড করতে টাইটেলে ক্লিক করুন:*`,
+        {
+          parse_mode:   "Markdown",
+          reply_markup: { inline_keyboard: videoRows }
+        }
+      );
+      this.saveMsgId(threadID, sentList.message_id);
 
     } catch (err) {
-      if (loadInfo) await api.unsendMessage(loadInfo.messageID).catch(() => {});
+      await api.deleteMessage(threadID, loadMsg.message_id).catch(() => {});
       console.error("[XNX Error]", err.message);
       message.reply(`❌ Error: ${err.message}`);
     }
   },
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // downloadAndSend — stream video file and send as FB attachment
-  // ────────────────────────────────────────────────────────────────────────────
-  downloadAndSend: async function (api, threadID, message, vidData) {
+  // ─── Download ────────────────────────────────────────────────────────────────
+  downloadAndSend: async function (api, message, threadID, vidData) {
     const { title, video_url, referer, isLong, duration } = vidData;
 
-    if (!video_url) {
-      return message.reply("❌ ডাউনলোড লিঙ্ক পাওয়া যায়নি।");
-    }
+    if (!video_url) return message.reply("❌ ডাউনলোড লিঙ্ক পাওয়া যায়নি।");
 
-    // Long video — just send the link
     if (isLong) {
-      return message.reply(
-        `🎬 ${title}\n⏱ ${duration}\n⚠️ ফাইল অনেক বড়। নিচের লিঙ্ক থেকে দেখুন:\n${video_url}`
+      return api.sendMessage(
+        threadID,
+        `🎬 *${title}*\n⏱ ${duration}\n⚠️ ফাইল অনেক বড়, সরাসরি দেখুন।`,
+        {
+          parse_mode:   "Markdown",
+          reply_markup: { inline_keyboard: [[{ text: "🌐 Watch", url: video_url }]] }
+        }
       );
     }
 
@@ -271,30 +230,33 @@ module.exports = {
       "Accept":     "video/*,*/*;q=0.9"
     };
 
-    const waitInfo = await sendMsg(
-      api,
-      `⏳ "${title}"\nডাউনলোড হচ্ছে... অনুগ্রহ করে অপেক্ষা করুন।`,
-      threadID
-    ).catch(() => null);
+    const waitMsg = await api.sendMessage(
+      threadID,
+      `⏳ *"${title}"*\nডাউনলোড হচ্ছে... অনুগ্রহ করে অপেক্ষা করুন।`,
+      { parse_mode: "Markdown" }
+    );
 
     const tmpPath = path.join(__dirname, `xnx_${Date.now()}.mp4`);
 
     try {
-      // ── Size check ──
+      // Size pre-check
       try {
         const head   = await axios.head(video_url, { headers, timeout: 10000 });
-        const bytes  = parseInt(head.headers["content-length"] || "0");
-        const sizeMB = bytes / (1024 * 1024);
-        if (sizeMB > 25) {
-          // Facebook limit is ~25 MB for video uploads via bot
-          if (waitInfo) await api.unsendMessage(waitInfo.messageID).catch(() => {});
-          return message.reply(
-            `⚠️ ${sizeMB.toFixed(1)} MB — ফাইল Facebook সীমার (25 MB) বেশি।\n🌐 দেখুন: ${video_url}`
+        const sizeMB = parseInt(head.headers["content-length"] || "0") / (1024 * 1024);
+        if (sizeMB > 49) {
+          await api.deleteMessage(threadID, waitMsg.message_id).catch(() => {});
+          return api.sendMessage(
+            threadID,
+            `⚠️ *${sizeMB.toFixed(1)} MB* — Telegram সীমা ৫০ MB`,
+            {
+              parse_mode:   "Markdown",
+              reply_markup: { inline_keyboard: [[{ text: "🌐 Watch", url: video_url }]] }
+            }
           );
         }
       } catch (_) {}
 
-      // ── Download to temp file ──
+      // Download
       const response = await axios({
         method:       "GET",
         url:          video_url,
@@ -310,41 +272,42 @@ module.exports = {
         const writer = fs.createWriteStream(tmpPath);
         response.data.pipe(writer);
         writer.on("finish", resolve);
-        writer.on("error", reject);
+        writer.on("error",  reject);
         response.data.on("error", reject);
       });
 
-      const stat     = fs.statSync(tmpPath);
-      const actualMB = stat.size / (1024 * 1024);
-
+      const stat = fs.statSync(tmpPath);
       if (stat.size < 1024) throw new Error("CDN blocked — empty response");
 
-      if (actualMB > 25) {
+      const actualMB = stat.size / (1024 * 1024);
+      if (actualMB > 49) {
         fs.unlinkSync(tmpPath);
-        if (waitInfo) await api.unsendMessage(waitInfo.messageID).catch(() => {});
-        return message.reply(
-          `⚠️ ${actualMB.toFixed(1)} MB — ফাইল Facebook সীমার বেশি।\n🌐 দেখুন: ${video_url}`
+        await api.deleteMessage(threadID, waitMsg.message_id).catch(() => {});
+        return api.sendMessage(
+          threadID,
+          `⚠️ *${actualMB.toFixed(1)} MB* — Telegram সীমা ৫০ MB`,
+          {
+            parse_mode:   "Markdown",
+            reply_markup: { inline_keyboard: [[{ text: "🌐 Watch", url: video_url }]] }
+          }
         );
       }
 
-      // ── Send video as attachment ──
-      await new Promise((resolve, reject) => {
-        api.sendMessage(
-          {
-            body:       `🎬 ${title}`,
-            attachment: fs.createReadStream(tmpPath)
-          },
-          threadID,
-          (err, info) => (err ? reject(err) : resolve(info))
-        );
+      await api.sendVideo(threadID, fs.createReadStream(tmpPath), {
+        caption:            `🎬 *${title}*`,
+        parse_mode:         "Markdown",
+        supports_streaming: true
       });
 
-      if (waitInfo) await api.unsendMessage(waitInfo.messageID).catch(() => {});
+      await api.deleteMessage(threadID, waitMsg.message_id).catch(() => {});
 
     } catch (err) {
       console.error("[XNX Download Error]", err.message);
-      if (waitInfo) await api.unsendMessage(waitInfo.messageID).catch(() => {});
-      message.reply(`❌ ডাউনলোড ব্যর্থ।\n🌐 দেখুন: ${video_url}`);
+      await api.deleteMessage(threadID, waitMsg.message_id).catch(() => {});
+      api.sendMessage(threadID, `❌ ডাউনলোড ব্যর্থ।`, {
+        parse_mode:   "Markdown",
+        reply_markup: { inline_keyboard: [[{ text: "🌐 Watch", url: video_url }]] }
+      });
     } finally {
       if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
     }
