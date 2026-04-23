@@ -11,15 +11,6 @@
   "port": 3000,
   "api": "https://mahabub-apis.fun",
   "cooldownDefault": 3,
-
-  "antiInbox": false,
-  "approval": true,
-
-  "reactBy": {
-    "delete": ["🤬"],
-    "kick":   ["👎"]
-  },
-
   "whiteListMode": {
     "enabled": false,
     "allowedChatIds": []
