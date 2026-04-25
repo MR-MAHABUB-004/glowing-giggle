@@ -32,6 +32,78 @@
 html,body{height:100%;overflow:hidden}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);display:flex}
 
+/* ── MOBILE RESPONSIVE ── */
+@media(max-width:700px){
+  :root{--sw:0px}
+  html,body{overflow:auto;height:auto}
+  body{flex-direction:column;overflow-x:hidden}
+
+  /* Sidebar becomes a slide-in drawer */
+  .sb{width:240px;transform:translateX(-100%);transition:transform .25s ease;z-index:500;height:100%;position:fixed}
+  .sb.open{transform:translateX(0)}
+
+  /* Overlay behind drawer */
+  .sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:499}
+  .sb-overlay.show{display:block}
+
+  /* Hamburger button */
+  .mob-menu-btn{display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;color:var(--text);flex-shrink:0}
+
+  /* Main takes full width */
+  .main{margin-left:0!important;width:100%;height:100%;min-height:100vh}
+  .topbar{padding:0 14px;height:50px;gap:8px;flex-wrap:nowrap}
+  .topbar-right{gap:6px;overflow:hidden}
+  .tb-chip span{display:none}
+  .content{padding:14px 12px}
+
+  /* Stack two/three-col grids */
+  .two-col,.three-col{grid-template-columns:1fr!important}
+
+  /* Stat grid smaller min */
+  .stat-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:9px}
+
+  /* Table horizontal scroll */
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{min-width:520px}
+
+  /* Cmd grid single col */
+  .cmd-grid{grid-template-columns:1fr}
+
+  /* Platform grid */
+  .plt-grid{grid-template-columns:repeat(auto-fill,minmax(90px,1fr))}
+
+  /* DL row stack */
+  .dl-row{flex-direction:column}
+  .dl-fetch{width:100%;justify-content:center}
+
+  /* Settings rows */
+  .set-row{flex-direction:column;align-items:flex-start;gap:8px}
+  .set-inp.w180{width:100%}
+  .set-inp.w80{width:100%}
+
+  /* Blacklist two-col */
+  .bl-inp-row{flex-wrap:wrap}
+
+  /* User grid */
+  .user-grid{grid-template-columns:1fr}
+
+  /* Page header stack */
+  .ph{flex-direction:column;gap:10px;align-items:flex-start}
+  .ph-actions{flex-wrap:wrap;width:100%}
+
+  /* Modal */
+  .modal{width:95%;padding:20px}
+
+  /* Log wrap */
+  .log-wrap{max-height:60vh}
+
+  /* Downloader config grid */
+  div[style*="grid-template-columns:1fr 1fr 1fr"]{display:grid!important;grid-template-columns:1fr!important}
+}
+
+/* MOBILE MENU BUTTON (hidden on desktop) */
+.mob-menu-btn{display:none}
+
 /* SIDEBAR */
 .sb{width:var(--sw);min-width:var(--sw);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;position:fixed;left:0;top:0;z-index:200}
 .sb-logo{padding:22px 20px 18px;border-bottom:1px solid var(--border)}
@@ -307,6 +379,9 @@ tbody tr:hover{background:rgba(255,255,255,0.02)}
 </head>
 <body>
 
+<!-- SIDEBAR OVERLAY (mobile) -->
+<div class="sb-overlay" id="sb-overlay" onclick="closeSidebar()"></div>
+
 <!-- SIDEBAR -->
 <aside class="sb">
   <div class="sb-logo">
@@ -393,6 +468,9 @@ tbody tr:hover{background:rgba(255,255,255,0.02)}
   <!-- TOPBAR -->
   <div class="topbar">
     <div class="topbar-left">
+      <div class="mob-menu-btn" id="mob-menu-btn" onclick="openSidebar()" title="Menu">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 4h12M2 8h12M2 12h12"/></svg>
+      </div>
       <span class="topbar-title" id="tb-title">Dashboard</span>
     </div>
     <div class="topbar-right">
@@ -401,7 +479,7 @@ tbody tr:hover{background:rgba(255,255,255,0.02)}
         <span id="tb-time">–</span>
       </div>
       <button class="tb-btn btn-danger btn-sm" onclick="confirmRestart()" style="background:rgba(247,79,110,0.12);color:var(--red);border:1px solid rgba(247,79,110,0.2);font-size:.7rem;padding:5px 12px">⟳ Restart</button>
-      <button class="tb-btn btn-sm" onclick="nav('broadcast',document.querySelector('.nav-item:nth-child(3)'))">📡 Broadcast</button>
+      <button class="tb-btn btn-sm" onclick="navBroadcast()">📡 Broadcast</button>
     </div>
   </div>
 
@@ -915,6 +993,25 @@ let _allChats     = [];
 let _logs         = [];
 let _logTimer     = null;
 
+// ─── MOBILE SIDEBAR ───────────────────────────────────────────────────────────
+function openSidebar() {
+  document.querySelector('.sb').classList.add('open');
+  document.getElementById('sb-overlay').classList.add('show');
+  document.body.style.overflow='hidden';
+}
+function closeSidebar() {
+  document.querySelector('.sb').classList.remove('open');
+  document.getElementById('sb-overlay').classList.remove('show');
+  document.body.style.overflow='';
+}
+
+// ─── NAV HELPERS ──────────────────────────────────────────────────────────────
+function navBroadcast() {
+  const btn = [...document.querySelectorAll('.nav-item')].find(b=>b.textContent.trim().startsWith('Broadcast'));
+  nav('broadcast', btn);
+  closeSidebar();
+}
+
 // ─── NAVIGATION ───────────────────────────────────────────────────────────────
 const PAGE_TITLES = {dashboard:'Dashboard',analytics:'Analytics',downloader:'Video Downloader',
   commands:'Commands',broadcast:'Broadcast',users:'Users',chats:'Chats & Groups',
@@ -932,6 +1029,8 @@ function nav(name, btn) {
   if(name==='blacklist') renderBlacklist();
   if(name==='settings') loadConfig();
   if(name==='broadcast') document.getElementById('bc-target-count').textContent = `${(_statsCache?.counts?.total||0)} chats targeted`;
+  // Close mobile sidebar on navigation
+  closeSidebar();
 }
 
 // ─── TOAST ────────────────────────────────────────────────────────────────────
@@ -955,7 +1054,9 @@ function closeModal() { document.getElementById('modal').classList.remove('show'
 
 // ─── TIME HELPERS ─────────────────────────────────────────────────────────────
 function relTime(ts) {
-  const d = Date.now() - new Date(ts).getTime();
+  if(!ts) return '—';
+  const d = Date.now() - (ts instanceof Date ? ts.getTime() : new Date(ts).getTime());
+  if(isNaN(d)||d<0) return 'just now';
   if(d<60000)  return 'just now';
   if(d<3600000) return Math.floor(d/60000)+'m ago';
   if(d<86400000) return Math.floor(d/3600000)+'h ago';
@@ -1029,6 +1130,7 @@ async function refreshAll() {
 
   // Users table
   _allUsers = d.users||[];
+  _allChats = (d.users||[]).map(u=>({...u,type:'private',title:u.name}));
   renderUsersTable(d.users);
   renderAllUsersTable(d.users);
 
@@ -1098,7 +1200,6 @@ function blockUser(id) {
 // ─── CHATS TABLE ──────────────────────────────────────────────────────────────
 function renderChatsTable(chats) {
   const tbody = document.getElementById('chats-body');
-  _allChats = chats||[];
   if(!chats?.length){
     tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px;font-family:var(--mono);font-size:.68rem">No chats yet</td></tr>';
     return;
@@ -1389,8 +1490,8 @@ function showDlResult(data) {
   document.getElementById('dl-thumb').textContent = '▶';
   const opts = document.getElementById('dl-opts');
   opts.innerHTML = '';
-  if(data.hd) opts.innerHTML+=`<a class="dl-opt" href="${escH(data.hd)}" target="_blank" download><div><div class="dq">🎬 HD Quality</div><div class="ds">High definition</div></div><span class="di">↓</span></a>`;
-  if(data.sd && data.sd!==data.hd) opts.innerHTML+=`<a class="dl-opt" href="${escH(data.sd)}" target="_blank" download><div><div class="dq">📱 SD Quality</div><div class="ds">Smaller file size</div></div><span class="di">↓</span></a>`;
+  if(data.hd) opts.innerHTML+=`<a class="dl-opt" href="${escH(data.hd)}" target="_blank" rel="noopener noreferrer" download><div><div class="dq">🎬 HD Quality</div><div class="ds">High definition</div></div><span class="di">↓</span></a>`;
+  if(data.sd && data.sd!==data.hd) opts.innerHTML+=`<a class="dl-opt" href="${escH(data.sd)}" target="_blank" rel="noopener noreferrer" download><div><div class="dq">📱 SD Quality</div><div class="ds">Smaller file size</div></div><span class="di">↓</span></a>`;
   document.getElementById('dl-result').classList.add('show');
 }
 
