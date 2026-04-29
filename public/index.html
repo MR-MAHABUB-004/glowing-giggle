@@ -4,487 +4,915 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>MahabubBot — Dashboard</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
-
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@400;500;600;700;800&display=swap');
   :root {
-    --bg:       #0a0a0d;
-    --surface:  #111115;
-    --card:     #16161c;
-    --border:   rgba(255,255,255,0.06);
-    --border2:  rgba(167,139,250,0.15);
-    --text:     #eeeef2;
-    --muted:    #6b6b80;
-    --accent:   #a78bfa;
-    --accent2:  #34d399;
-    --accent3:  #f59e0b;
-    --red:      #f87171;
-    --blue:     #60a5fa;
-    --radius:   14px;
-    --font:     'Outfit', system-ui, sans-serif;
-    --mono:     'Space Mono', monospace;
+    --bg:      #0a0a0d;
+    --surface: #111115;
+    --card:    #16161c;
+    --border:  rgba(255,255,255,0.06);
+    --text:    #eeeef2;
+    --muted:   #6b6b80;
+    --accent:  #a78bfa;
+    --green:   #34d399;
+    --amber:   #f59e0b;
+    --red:     #f87171;
+    --blue:    #60a5fa;
+    --teal:    #2dd4bf;
+    --r:       13px;
+    --font:    'Outfit', system-ui, sans-serif;
+    --mono:    'Space Mono', monospace;
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
   body {
     background: var(--bg);
     color: var(--text);
     font-family: var(--font);
     min-height: 100vh;
-    padding: 0 0 80px;
-    overflow-x: hidden;
+    padding-bottom: 80px;
   }
-
   body::before {
     content: '';
-    position: fixed; inset: 0;
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
     background-image:
-      linear-gradient(rgba(167,139,250,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(167,139,250,0.03) 1px, transparent 1px);
+      linear-gradient(rgba(167,139,250,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(167,139,250,.03) 1px, transparent 1px);
     background-size: 40px 40px;
-    pointer-events: none; z-index: 0;
   }
 
-  /* ── Header ── */
+  /* ────────────────────────────────────────────────────────────────────────────────── */
+  /* HEADER */
+  /* ────────────────────────────────────────────────────────────────────────────────── */
   header {
-    position: relative; z-index: 1;
-    text-align: center; overflow: hidden;
+    position: relative; z-index: 1; text-align: center; overflow: hidden;
+    background: linear-gradient(160deg,#0f0c1a 0%,#12102a 45%,#0a1628 100%);
+    border-bottom: 1px solid rgba(167,139,250,.18);
+    padding: 42px 24px 34px;
   }
-  .header-bg {
-    background: linear-gradient(160deg, #0f0c1a 0%, #12102a 40%, #0a1628 100%);
-    border-bottom: 1px solid var(--border2);
-    padding: 40px 24px 36px;
-    position: relative;
-  }
-  .header-bg::before {
-    content: ''; position: absolute; inset: 0;
+  header::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
     background:
-      radial-gradient(ellipse 60% 50% at 50% -10%, rgba(167,139,250,0.18) 0%, transparent 70%),
-      radial-gradient(ellipse 30% 40% at 80% 80%, rgba(96,165,250,0.08) 0%, transparent 60%);
-    pointer-events: none;
+      radial-gradient(ellipse 60% 55% at 50% -15%, rgba(167,139,250,.2) 0%, transparent 70%),
+      radial-gradient(ellipse 30% 35% at 85% 85%, rgba(96,165,250,.08) 0%, transparent 60%);
   }
-
-  .bot-avatar {
+  .avatar {
+    position: relative; z-index: 1;
     width: 80px; height: 80px; border-radius: 50%;
-    background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 50%, #2563eb 100%);
+    background: linear-gradient(135deg,#7c3aed,#4f46e5,#2563eb);
     display: flex; align-items: center; justify-content: center;
     font-size: 28px; font-weight: 800; color: #fff;
     margin: 0 auto 16px;
-    border: 2px solid rgba(167,139,250,0.35);
-    box-shadow: 0 0 0 6px rgba(167,139,250,0.07), 0 0 40px rgba(167,139,250,0.2), 0 8px 32px rgba(0,0,0,0.4);
-    letter-spacing: -1px; position: relative; z-index: 1;
-    animation: avatarPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    border: 2px solid rgba(167,139,250,.35);
+    box-shadow: 0 0 0 7px rgba(167,139,250,.07), 0 0 40px rgba(167,139,250,.2);
+    animation: pop .6s cubic-bezier(.34,1.56,.64,1) both;
   }
-  @keyframes avatarPop {
-    from { transform: scale(0.5); opacity: 0; }
-    to   { transform: scale(1);   opacity: 1; }
+  @keyframes pop { from{transform:scale(.5);opacity:0} to{transform:scale(1);opacity:1} }
+  @keyframes up  { from{transform:translateY(14px);opacity:0} to{transform:translateY(0);opacity:1} }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  header h1 { font-size:26px; font-weight:800; color:#fff; position:relative; z-index:1; animation:up .5s .1s both; }
+  .handle   { font-size:14px; color:var(--accent); font-family:var(--mono); margin-top:5px; position:relative; z-index:1; animation:up .5s .2s both; }
+  .badges   { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:14px; position:relative; z-index:1; animation:up .5s .3s both; }
+  .badge    { display:inline-flex; align-items:center; gap:6px; padding:5px 14px; border-radius:20px; font-size:12px; font-weight:600; font-family:var(--mono); }
+  .badge.online  { background:rgba(52,211,153,.1); border:1px solid rgba(52,211,153,.25); color:var(--green); }
+  .badge.owner   { background:rgba(167,139,250,.1); border:1px solid rgba(167,139,250,.2); color:var(--accent); text-decoration:none; }
+  .badge.owner:hover { background:rgba(167,139,250,.18); }
+  .dot { width:7px; height:7px; border-radius:50%; background:var(--green); animation:pulse 2s infinite; }
+
+  /* ────────────────────────────────────────────────────────────────────────────────── */
+  /* TABS */
+  /* ────────────────────────────────────────────────────────────────────────────────── */
+  .tabs {
+    display: flex;
+    gap: 0;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    z-index: 1;
+    background: var(--bg);
+    margin-bottom: 20px;
   }
-  header h1 {
-    font-size: 26px; font-weight: 800; letter-spacing: -0.5px;
-    color: #fff; position: relative; z-index: 1;
-    animation: fadeUp 0.5s 0.1s ease both;
+  .tab-btn {
+    padding: 14px 20px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color .3s;
+    border-bottom: 2px solid transparent;
+    position: relative;
   }
-  .bot-handle {
-    font-size: 14px; color: var(--accent); margin-top: 5px;
-    font-weight: 400; font-family: var(--mono);
-    position: relative; z-index: 1;
-    animation: fadeUp 0.5s 0.2s ease both;
+  .tab-btn:hover {
+    color: var(--text);
   }
-  .header-badges {
-    display: flex; align-items: center; justify-content: center;
-    gap: 8px; margin-top: 14px; flex-wrap: wrap;
-    position: relative; z-index: 1;
-    animation: fadeUp 0.5s 0.3s ease both;
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
   }
-  .status-badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.25);
-    color: var(--accent2); padding: 5px 14px; border-radius: 20px;
-    font-size: 12px; font-weight: 600; letter-spacing: 0.6px; font-family: var(--mono);
+  .tab-content {
+    display: none;
   }
-  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent2); animation: pulse 2s infinite; }
-  .owner-badge {
-    display: inline-flex; align-items: center; gap: 5px;
-    background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.2);
-    color: var(--accent); padding: 5px 14px; border-radius: 20px;
-    font-size: 12px; font-weight: 500; text-decoration: none;
-  }
-  .owner-badge:hover { background: rgba(167,139,250,0.18); }
-
-  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
-  @keyframes fadeUp {
-    from { transform: translateY(12px); opacity: 0; }
-    to   { transform: translateY(0);    opacity: 1; }
+  .tab-content.active {
+    display: block;
   }
 
-  /* ── Layout ── */
-  .container { max-width: 920px; margin: 0 auto; padding: 32px 20px 0; position: relative; z-index: 1; }
+  /* ────────────────────────────────────────────────────────────────────────────────── */
+  /* LAYOUT */
+  /* ────────────────────────────────────────────────────────────────────────────────── */
+  .wrap { max-width:940px; margin:0 auto; padding:0 18px 30px; position:relative; z-index:1; }
 
-  .refresh-hint {
-    font-size: 11px; color: var(--muted); text-align: right; padding: 0 0 16px;
-    display: flex; align-items: center; justify-content: flex-end; gap: 5px; font-family: var(--mono);
+  .refresh {
+    font-family:var(--mono); font-size:11px; color:var(--muted);
+    display:flex; align-items:center; justify-content:flex-end; gap:5px; padding-bottom:16px;
   }
-  .refresh-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent2); animation: pulse 2s infinite; }
+  .rdot { width:6px; height:6px; border-radius:50%; background:var(--green); animation:pulse 2s infinite; }
 
-  /* ── Stat grid ── */
-  .stats-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
-    gap: 12px; margin-bottom: 24px;
+  /* ────────────────────────────────────────────────────────────────────────────────── */
+  /* STAT GRID */
+  /* ────────────────────────────────────────────────────────────────────────────────── */
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(148px,1fr)); gap:12px; margin-bottom:22px; }
+  .sc {
+    background:var(--card); border:1px solid var(--border); border-radius:var(--r);
+    padding:20px 16px 16px; position:relative; overflow:hidden;
+    transition:transform .2s,border-color .2s;
+    animation:up .45s ease both;
   }
-  .stat-card {
-    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 20px 16px 16px; position: relative; overflow: hidden;
-    transition: transform 0.2s, border-color 0.2s;
-    animation: fadeUp 0.5s ease both;
+  .sc:hover { transform:translateY(-2px); border-color:rgba(255,255,255,.1); }
+  .sc::after  { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+  .sc::before { content:''; position:absolute; inset:0; opacity:0; transition:opacity .2s; }
+  .sc:hover::before { opacity:1; }
+  /* colours */
+  .c-purple::after  { background:linear-gradient(90deg,var(--accent),#7c3aed); }
+  .c-purple::before { background:radial-gradient(ellipse at top,rgba(167,139,250,.06),transparent 70%); }
+  .c-green::after   { background:linear-gradient(90deg,var(--green),#059669); }
+  .c-green::before  { background:radial-gradient(ellipse at top,rgba(52,211,153,.06),transparent 70%); }
+  .c-blue::after    { background:linear-gradient(90deg,var(--blue),#2563eb); }
+  .c-blue::before   { background:radial-gradient(ellipse at top,rgba(96,165,250,.06),transparent 70%); }
+  .c-amber::after   { background:linear-gradient(90deg,var(--amber),#d97706); }
+  .c-amber::before  { background:radial-gradient(ellipse at top,rgba(245,158,11,.06),transparent 70%); }
+  .c-teal::after    { background:linear-gradient(90deg,var(--teal),#0d9488); }
+  .c-teal::before   { background:radial-gradient(ellipse at top,rgba(45,212,191,.06),transparent 70%); }
+  .c-red::after     { background:linear-gradient(90deg,var(--red),#dc2626); }
+  .c-red::before    { background:radial-gradient(ellipse at top,rgba(248,113,113,.06),transparent 70%); }
+
+  .si { font-size:22px; margin-bottom:10px; display:block; position:relative; z-index:1; }
+  .sl { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; font-weight:600; margin-bottom:5px; position:relative; z-index:1; }
+  .sv { font-size:28px; font-weight:800; line-height:1; position:relative; z-index:1; }
+  .ss { font-size:11px; color:var(--muted); margin-top:5px; position:relative; z-index:1; }
+  .sc:nth-child(1){animation-delay:.05s}.sc:nth-child(2){animation-delay:.10s}
+  .sc:nth-child(3){animation-delay:.15s}.sc:nth-child(4){animation-delay:.20s}
+  .sc:nth-child(5){animation-delay:.25s}.sc:nth-child(6){animation-delay:.30s}
+
+  /* ────────────────────────────────────────────────────────────────────────────────── */
+  /* SECTION CARDS */
+  /* ────────────────────────────────────────────────────────────────────────────────── */
+  .card {
+    background:var(--card); border:1px solid var(--border); border-radius:var(--r);
+    margin-bottom:18px; overflow:hidden; animation:up .45s ease both;
   }
-  .stat-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.1); }
-  .stat-card::after {
-    content: ''; position: absolute; top: 0; left: 0; right: 0;
-    height: 2px; border-radius: 2px 2px 0 0;
+  .card:nth-child(1){animation-delay:.12s}.card:nth-child(2){animation-delay:.17s}
+  .card:nth-child(3){animation-delay:.22s}.card:nth-child(4){animation-delay:.27s}
+  .card:nth-child(5){animation-delay:.32s}
+  .ch {
+    padding:14px 20px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:10px;
+    background:rgba(255,255,255,.01);
   }
-  .stat-card::before {
-    content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 0.2s;
+  .ch h2 { font-size:14px; font-weight:600; flex:1; }
+  .ch small { font-size:11px; color:var(--muted); font-family:var(--mono); }
+  .cb { padding:18px 20px; }
+
+  /* ────────────────────────────────────────────────────────────────────────────────── */
+  /* CONTROLS */
+  /* ────────────────────────────────────────────────────────────────────────────────── */
+  .control-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
   }
-  .stat-card:hover::before { opacity: 1; }
+  .control-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 16px;
+    transition: border-color .2s;
+  }
+  .control-card:hover {
+    border-color: rgba(167,139,250,.15);
+  }
+  .control-label {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .switch {
+    display: inline-flex;
+    width: 44px;
+    height: 24px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: background .3s, border-color .3s;
+  }
+  .switch.on {
+    background: rgba(52,211,153,.15);
+    border-color: var(--green);
+  }
+  .switch-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: var(--border);
+    border-radius: 10px;
+    transition: left .3s;
+  }
+  .switch.on .switch-thumb {
+    left: 22px;
+    background: var(--green);
+  }
+  .control-value {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+  }
 
-  .stat-card.purple::after  { background: linear-gradient(90deg, var(--accent), #7c3aed); }
-  .stat-card.purple::before { background: radial-gradient(ellipse at top, rgba(167,139,250,0.06) 0%, transparent 70%); }
-  .stat-card.green::after   { background: linear-gradient(90deg, var(--accent2), #059669); }
-  .stat-card.green::before  { background: radial-gradient(ellipse at top, rgba(52,211,153,0.06) 0%, transparent 70%); }
-  .stat-card.amber::after   { background: linear-gradient(90deg, var(--accent3), #d97706); }
-  .stat-card.amber::before  { background: radial-gradient(ellipse at top, rgba(245,158,11,0.06) 0%, transparent 70%); }
-  .stat-card.blue::after    { background: linear-gradient(90deg, var(--blue), #2563eb); }
-  .stat-card.blue::before   { background: radial-gradient(ellipse at top, rgba(96,165,250,0.06) 0%, transparent 70%); }
-  .stat-card.red::after     { background: linear-gradient(90deg, var(--red), #dc2626); }
-  .stat-card.red::before    { background: radial-gradient(ellipse at top, rgba(248,113,113,0.06) 0%, transparent 70%); }
-  .stat-card.teal::after    { background: linear-gradient(90deg, #2dd4bf, #0d9488); }
-  .stat-card.teal::before   { background: radial-gradient(ellipse at top, rgba(45,212,191,0.06) 0%, transparent 70%); }
+  /* ────────────────────────────────────────────────────────────────────────────────── */
+  /* DOWNLOADER STYLES */
+  /* ────────────────────────────────────────────────────────────────────────────────── */
+  #particles-js {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+  }
 
-  .stat-icon  { font-size: 22px; margin-bottom: 10px; display: block; position: relative; z-index: 1; }
-  .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; margin-bottom: 5px; position: relative; z-index: 1; }
-  .stat-value { font-size: 28px; font-weight: 800; color: var(--text); line-height: 1; position: relative; z-index: 1; }
-  .stat-sub   { font-size: 11px; color: var(--muted); margin-top: 5px; position: relative; z-index: 1; }
+  .downloader-container {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
 
-  /* ── Section cards ── */
-  .section { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 20px; overflow: hidden; animation: fadeUp 0.5s ease both; }
-  .section-header { padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.01); }
-  .section-header h2 { font-size: 14px; font-weight: 600; color: var(--text); flex: 1; letter-spacing: 0.2px; }
-  .section-meta { font-size: 11px; color: var(--muted); font-family: var(--mono); }
-  .section-body { padding: 18px 20px; }
+  .main-card {
+    width: 100%;
+    max-width: 550px;
+    background: var(--card);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 30px;
+    padding: 40px;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(167, 139, 250, 0.1);
+    animation: slideUp 0.8s ease-out;
+  }
 
-  /* ── Progress bars ── */
-  .progress-wrap { margin-bottom: 18px; }
-  .progress-wrap:last-child { margin-bottom: 0; }
-  .progress-label { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 8px; align-items: center; }
-  .progress-label span:last-child { color: var(--text); font-weight: 600; font-family: var(--mono); font-size: 12px; }
-  .progress-bar { height: 5px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
-  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); background: linear-gradient(90deg, var(--accent), var(--blue)); }
-  .progress-fill.green { background: linear-gradient(90deg, var(--accent2), #0d9488); }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 
-  /* ── Info rows ── */
-  .info-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 13px; gap: 12px; }
-  .info-row:last-child { border-bottom: none; }
-  .info-key { color: var(--muted); flex-shrink: 0; }
-  .info-val { color: var(--text); font-weight: 500; font-family: var(--mono); font-size: 12px; text-align: right; }
-  .info-val a { color: var(--accent); text-decoration: none; }
-  .info-val a:hover { text-decoration: underline; }
+  .logo-area i {
+    font-size: 50px;
+    background: linear-gradient(45deg, var(--accent), var(--green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 20px;
+  }
 
-  /* ── Users list ── */
-  .users-list { display: flex; flex-direction: column; gap: 8px; }
-  .user-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; transition: border-color 0.2s, background 0.2s; }
-  .user-item:hover { border-color: rgba(167,139,250,0.2); background: rgba(167,139,250,0.04); }
-  .user-avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; }
-  .user-name { font-size: 14px; font-weight: 600; color: var(--text); }
-  .user-meta { font-size: 12px; color: var(--muted); margin-top: 2px; font-family: var(--mono); }
-  .user-stat { font-size: 11px; color: var(--accent2); margin-top: 2px; }
-  .user-time { margin-left: auto; font-size: 11px; color: var(--muted); text-align: right; white-space: nowrap; font-family: var(--mono); }
+  .main-card h1 { margin: 0; font-size: 2.2rem; font-weight: 700; }
+  .tagline { color: #888; margin-bottom: 30px; font-size: 0.9rem; }
 
-  /* ── Chats list ── */
-  .chats-list { display: flex; flex-direction: column; gap: 8px; }
-  .chat-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; transition: border-color 0.2s, background 0.2s; }
-  .chat-item:hover { border-color: rgba(96,165,250,0.2); background: rgba(96,165,250,0.03); }
-  .chat-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.15); }
-  .chat-title { font-size: 14px; font-weight: 600; color: var(--text); }
-  .chat-meta  { font-size: 12px; color: var(--muted); margin-top: 2px; font-family: var(--mono); }
+  .input-box {
+    position: relative;
+    margin-bottom: 20px;
+  }
 
-  /* ── Tags ── */
-  .tag { display: inline-block; font-size: 10px; padding: 3px 8px; border-radius: 5px; font-weight: 700; letter-spacing: 0.4px; white-space: nowrap; font-family: var(--mono); }
-  .tag.group   { background: rgba(96,165,250,0.12);  color: var(--blue);    border: 1px solid rgba(96,165,250,0.2); }
-  .tag.private { background: rgba(167,139,250,0.12); color: var(--accent);  border: 1px solid rgba(167,139,250,0.2); }
-  .tag.super   { background: rgba(52,211,153,0.12);  color: var(--accent2); border: 1px solid rgba(52,211,153,0.2); }
+  .input-box input {
+    width: 100%;
+    padding: 18px 25px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid transparent;
+    border-radius: 15px;
+    color: #fff;
+    font-size: 1rem;
+    transition: 0.3s;
+    outline: none;
+    font-family: var(--mono);
+  }
 
-  /* ── Empty ── */
-  .empty { color: var(--muted); font-size: 13px; text-align: center; padding: 32px 20px; font-family: var(--mono); }
+  .input-box input:focus {
+    border-color: var(--accent);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 15px rgba(167, 139, 250, 0.2);
+  }
 
-  /* ── Footer ── */
-  footer { text-align: center; padding: 40px 20px 0; font-size: 12px; color: var(--muted); position: relative; z-index: 1; font-family: var(--mono); }
-  footer a { color: var(--accent); text-decoration: none; }
-  footer a:hover { text-decoration: underline; }
+  .btn-glow {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 15px;
+    background: linear-gradient(45deg, var(--accent), var(--green));
+    color: #000;
+    font-weight: 700;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: 0.4s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: var(--font);
+  }
 
-  /* stagger */
-  .stats-grid .stat-card:nth-child(1) { animation-delay:.05s }
-  .stats-grid .stat-card:nth-child(2) { animation-delay:.10s }
-  .stats-grid .stat-card:nth-child(3) { animation-delay:.15s }
-  .stats-grid .stat-card:nth-child(4) { animation-delay:.20s }
-  .stats-grid .stat-card:nth-child(5) { animation-delay:.25s }
-  .stats-grid .stat-card:nth-child(6) { animation-delay:.30s }
-  .section:nth-child(1){animation-delay:.15s}
-  .section:nth-child(2){animation-delay:.20s}
-  .section:nth-child(3){animation-delay:.25s}
-  .section:nth-child(4){animation-delay:.30s}
-  .section:nth-child(5){animation-delay:.35s}
+  .btn-glow:hover {
+    transform: scale(1.02);
+    box-shadow: 0 0 25px rgba(167, 139, 250, 0.4);
+  }
+
+  #resultArea {
+    margin-top: 30px;
+    display: none;
+    animation: fadeIn 0.5s;
+  }
+
+  video {
+    width: 100%;
+    border-radius: 20px;
+    border: 1px solid var(--green);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  .dl-final-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+    padding: 14px 30px;
+    background: #fff;
+    color: #000;
+    text-decoration: none;
+    border-radius: 50px;
+    font-weight: 700;
+    transition: 0.3s;
+  }
+
+  .dl-final-btn:hover { background: var(--green); }
+
+  .loader-container {
+    display: none;
+    margin: 20px 0;
+  }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(167, 139, 250, 0.1);
+    border-top: 3px solid var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+  }
+
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .status-text {
+    font-size: 0.85rem;
+    margin-top: 10px;
+    color: var(--accent);
+    font-style: italic;
+  }
+
+  /* Platform Badges */
+  .platforms {
+    margin-top: 30px;
+    display: flex;
+    gap: 18px;
+    justify-content: center;
+    align-items: center;
+    opacity: 0.7;
+  }
+
+  .platforms i {
+    font-size: 1.3rem;
+    transition: 0.3s;
+    cursor: pointer;
+  }
+
+  .platforms i:hover {
+    opacity: 1;
+    color: var(--accent);
+    transform: translateY(-3px);
+  }
+
+  .lst { display:flex; flex-direction:column; gap:7px; }
+  .li {
+    display:flex; align-items:center; gap:12px;
+    padding:11px 14px; background:var(--surface);
+    border:1px solid var(--border); border-radius:10px;
+    transition:border-color .2s,background .2s;
+  }
+  .li:hover { border-color:rgba(167,139,250,.2); background:rgba(167,139,250,.04); }
+  .av {
+    width:38px; height:38px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; font-weight:700; color:#fff; flex-shrink:0;
+  }
+  .ln  { font-size:14px; font-weight:600; }
+  .lm  { font-size:12px; color:var(--muted); margin-top:2px; font-family:var(--mono); }
+  .lt  { margin-left:auto; font-size:11px; color:var(--muted); white-space:nowrap; font-family:var(--mono); }
+  .empty { color:var(--muted); font-size:13px; text-align:center; padding:32px 20px; font-family:var(--mono); }
+
+  footer { text-align:center; padding:38px 20px 0; font-size:12px; color:var(--muted); font-family:var(--mono); position:relative; z-index:1; }
+  footer a { color:var(--accent); text-decoration:none; }
+  footer a:hover { text-decoration:underline; }
+
+  .broadcast-textarea {
+    width: 100%;
+    height: 80px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    resize: vertical;
+  }
+
+  #broadcast-result {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--green);
+    font-family: var(--mono);
+  }
 </style>
 </head>
 <body>
 
+<!-- HEADER -->
 <header>
-  <div class="header-bg">
-    <div class="bot-avatar" id="avatarInitials">MB</div>
-    <h1 id="headerName">MahabubBot</h1>
-    <div class="bot-handle" id="headerHandle">@loading…</div>
-    <div class="header-badges">
-      <div class="status-badge"><span class="status-dot"></span>ONLINE</div>
-      <a class="owner-badge" href="https://t.me/MAHABUB_RAHMAN777" target="_blank">👑 @MAHABUB_RAHMAN777</a>
-    </div>
+  <div class="avatar" id="av">MB</div>
+  <h1 id="hName">MahabubBot</h1>
+  <div class="handle" id="hUser">@loading…</div>
+  <div class="badges">
+    <div class="badge online"><span class="dot"></span>ONLINE</div>
+    <a class="badge owner" href="https://t.me/MAHABUB_RAHMAN777" target="_blank">👑 @MAHABUB_RAHMAN777</a>
   </div>
 </header>
 
-<div class="container">
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+  <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
+  <button class="tab-btn" data-tab="loader">🎬 Loader</button>
+</div>
 
-  <div class="refresh-hint">
-    <span class="refresh-dot"></span>
-    auto-refresh every 10s &nbsp;·&nbsp; <span id="lastUpdate">–</span>
+<div class="wrap">
+  <div class="refresh">
+    <span class="rdot"></span>
+    auto-refresh 10s &nbsp;·&nbsp; <span id="lu">–</span>
   </div>
 
-  <!-- Stat cards -->
-  <div class="stats-grid">
-    <div class="stat-card purple">
-      <span class="stat-icon">⏱</span>
-      <div class="stat-label">Uptime</div>
-      <div class="stat-value" id="uptime" style="font-size:15px;line-height:1.4;font-family:var(--mono)">–</div>
-    </div>
-    <div class="stat-card green">
-      <span class="stat-icon">👥</span>
-      <div class="stat-label">Total Chats</div>
-      <div class="stat-value" id="countTotal">–</div>
-      <div class="stat-sub" id="countSub">groups + private</div>
-    </div>
-    <div class="stat-card blue">
-      <span class="stat-icon">🏘</span>
-      <div class="stat-label">Groups</div>
-      <div class="stat-value" id="countGroups">–</div>
-    </div>
-    <div class="stat-card amber">
-      <span class="stat-icon">🧑‍💻</span>
-      <div class="stat-label">Private</div>
-      <div class="stat-value" id="countUsers">–</div>
-    </div>
-    <div class="stat-card teal">
-      <span class="stat-icon">⚙️</span>
-      <div class="stat-label">Commands</div>
-      <div class="stat-value" id="cmdCount">–</div>
-      <div class="stat-sub" id="evtSub">events loaded</div>
-    </div>
-    <div class="stat-card red">
-      <span class="stat-icon">🧠</span>
-      <div class="stat-label">Memory</div>
-      <div class="stat-value" id="memVal" style="font-size:20px">–</div>
-      <div class="stat-sub">MB used</div>
-    </div>
-  </div>
+  <!-- ════════════════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB: DASHBOARD -->
+  <!-- ════════════════════════════════════════════════════════════════════════════════ -->
+  <div id="dashboard" class="tab-content active">
 
-  <!-- System Resources -->
-  <div class="section">
-    <div class="section-header"><span>🖥</span><h2>System Resources</h2></div>
-    <div class="section-body">
-      <div class="progress-wrap">
-        <div class="progress-label"><span>Memory Usage</span><span id="memLabel">–</span></div>
-        <div class="progress-bar"><div class="progress-fill green" id="memBar" style="width:0%"></div></div>
+    <!-- STAT CARDS -->
+    <div class="grid">
+      <div class="sc c-purple">
+        <span class="si">⏱</span>
+        <div class="sl">Uptime</div>
+        <div class="sv" id="s-uptime" style="font-size:15px;line-height:1.5;font-family:var(--mono)">–</div>
       </div>
-      <div class="progress-wrap">
-        <div class="progress-label"><span>Commands Loaded</span><span id="cmdLabel">–</span></div>
-        <div class="progress-bar"><div class="progress-fill" id="cmdBar" style="width:0%"></div></div>
+      <div class="sc c-green">
+        <span class="si">👥</span>
+        <div class="sl">Total Chats</div>
+        <div class="sv" id="s-total">–</div>
+        <div class="ss" id="s-totalsub">groups + private</div>
+      </div>
+      <div class="sc c-blue">
+        <span class="si">🏘</span>
+        <div class="sl">Groups</div>
+        <div class="sv" id="s-groups">–</div>
+      </div>
+      <div class="sc c-amber">
+        <span class="si">🧑‍💻</span>
+        <div class="sl">Private</div>
+        <div class="sv" id="s-private">–</div>
+      </div>
+      <div class="sc c-teal">
+        <span class="si">⚙️</span>
+        <div class="sl">Commands</div>
+        <div class="sv" id="s-cmds">–</div>
+        <div class="ss" id="s-evts">– events</div>
+      </div>
+      <div class="sc c-red">
+        <span class="si">🧠</span>
+        <div class="sl">Memory</div>
+        <div class="sv" id="s-mem" style="font-size:20px">–</div>
+        <div class="ss" id="s-memsub">MB used</div>
       </div>
     </div>
+
+    <!-- BOT INFORMATION -->
+    <div class="card">
+      <div class="ch"><span>🤖</span><h2>Bot Information</h2></div>
+      <div class="cb">
+        <div style="margin-bottom:8px;"><strong style="color:var(--accent)">Bot Name</strong></div>
+        <div id="i-name" style="font-size:12px;color:var(--muted);margin-bottom:14px;font-family:var(--mono)">–</div>
+
+        <div style="margin-bottom:8px;"><strong style="color:var(--accent)">Username</strong></div>
+        <div id="i-user" style="font-size:12px;color:var(--muted);margin-bottom:14px;font-family:var(--mono)">–</div>
+
+        <div style="margin-bottom:8px;"><strong style="color:var(--accent)">Bot ID</strong></div>
+        <div id="i-id" style="font-size:12px;color:var(--muted);margin-bottom:14px;font-family:var(--mono)">–</div>
+
+        <div style="margin-bottom:8px;"><strong style="color:var(--accent)">Commands / Events</strong></div>
+        <div id="i-ce" style="font-size:12px;color:var(--muted);margin-bottom:14px;font-family:var(--mono)">–</div>
+      </div>
+    </div>
+
+    <!-- RECENT USERS -->
+    <div class="card">
+      <div class="ch"><span>👤</span><h2>Recent Users</h2><small>last 50</small></div>
+      <div class="cb">
+        <div class="lst" id="users"><div class="empty">Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- ACTIVE CHATS -->
+    <div class="card">
+      <div class="ch"><span>💬</span><h2>Active Chats</h2><small>up to 100</small></div>
+      <div class="cb">
+        <div class="lst" id="chats"><div class="empty">Loading…</div></div>
+      </div>
+    </div>
+
   </div>
 
-  <!-- Bot Information -->
-  <div class="section">
-    <div class="section-header"><span>🤖</span><h2>Bot Information</h2></div>
-    <div class="section-body">
-      <div class="info-row"><span class="info-key">Bot Name</span><span class="info-val" id="infoName">MahabubBot</span></div>
-      <div class="info-row"><span class="info-key">Username</span><span class="info-val" id="infoUsername">–</span></div>
-      <div class="info-row"><span class="info-key">Bot ID</span><span class="info-val" id="infoBotId">–</span></div>
-      <div class="info-row"><span class="info-key">Admin ID</span><span class="info-val" id="infoAdmin">–</span></div>
-      <div class="info-row"><span class="info-key">Prefix</span><span class="info-val" id="infoPrefix">–</span></div>
-      <div class="info-row"><span class="info-key">Language</span><span class="info-val" id="infoLang">–</span></div>
-      <div class="info-row"><span class="info-key">Database</span><span class="info-val" id="infoDb">–</span></div>
-      <div class="info-row"><span class="info-key">Webhook Mode</span><span class="info-val" id="infoWebhook">–</span></div>
-      <div class="info-row"><span class="info-key">Cooldown</span><span class="info-val" id="infoCooldown">–</span></div>
-      <div class="info-row"><span class="info-key">Commands / Events</span><span class="info-val" id="infoCmds">–</span></div>
-      <div class="info-row"><span class="info-key">Owner</span><span class="info-val"><a href="https://t.me/MAHABUB_RAHMAN777" target="_blank">@MAHABUB_RAHMAN777</a></span></div>
-      <div class="info-row"><span class="info-key">Uptime</span><span class="info-val" id="infoUptime">–</span></div>
+  <!-- ════════════════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB: SETTINGS -->
+  <!-- ════════════════════════════════════════════════════════════════════════════════ -->
+  <div id="settings" class="tab-content">
+
+    <div class="card">
+      <div class="ch"><span>⚙️</span><h2>Bot Settings</h2></div>
+      <div class="cb">
+
+        <!-- Control Group 1: Bot Toggles -->
+        <h3 style="margin-bottom: 14px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .7px; font-weight: 600;">🔨 Bot Controls</h3>
+        <div class="control-group">
+          <div class="control-card">
+            <div class="control-label">
+              <span>Whitelist Mode</span>
+              <div class="switch" id="sw-whitelist" onclick="toggleSetting(this, 'whiteListMode.enabled')">
+                <div class="switch-thumb"></div>
+              </div>
+            </div>
+            <div class="control-value">Off</div>
+          </div>
+          <div class="control-card">
+            <div class="control-label">
+              <span>Blacklist Active</span>
+              <div class="switch" id="sw-blacklist" onclick="toggleSetting(this, 'blackList')">
+                <div class="switch-thumb"></div>
+              </div>
+            </div>
+            <div class="control-value">Off</div>
+          </div>
+          <div class="control-card">
+            <div class="control-label">
+              <span>Auto Restart</span>
+              <div class="switch" id="sw-autorestart" onclick="toggleSetting(this, 'autoRestart')">
+                <div class="switch-thumb"></div>
+              </div>
+            </div>
+            <div class="control-value">Off</div>
+          </div>
+          <div class="control-card">
+            <div class="control-label">
+              <span>Message Logging</span>
+              <div class="switch" id="sw-logging" onclick="toggleSetting(this, 'messageLogging')">
+                <div class="switch-thumb"></div>
+              </div>
+            </div>
+            <div class="control-value">Off</div>
+          </div>
+        </div>
+
+        <!-- Broadcast Section -->
+        <h3 style="margin-bottom: 14px; margin-top: 20px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .7px; font-weight: 600;">📢 Broadcast</h3>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 16px;">
+          <div style="margin-bottom: 10px;">
+            <label style="font-size: 12px; color: var(--muted); display: block; margin-bottom: 6px;">Broadcast Message</label>
+            <textarea id="broadcast-msg" class="broadcast-textarea" placeholder="Type your message here..."></textarea>
+          </div>
+          <button class="btn-glow" onclick="sendBroadcast()">📢 Send to All Chats</button>
+          <div id="broadcast-result"></div>
+        </div>
+
+      </div>
     </div>
+
   </div>
 
-  <!-- Recent Users -->
-  <div class="section">
-    <div class="section-header">
-      <span>👤</span><h2>Recent Users</h2>
-      <span class="section-meta">last 50 interactions</span>
-    </div>
-    <div class="section-body">
-      <div class="users-list" id="usersList"><div class="empty">Loading…</div></div>
-    </div>
-  </div>
+  <!-- ════════════════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB: LOADER -->
+  <!-- ════════════════════════════════════════════════════════════════════════════════ -->
+  <div id="loader" class="tab-content">
 
-  <!-- Active Chats -->
-  <div class="section">
-    <div class="section-header">
-      <span>💬</span><h2>Active Chats</h2>
-      <span class="section-meta">up to 100 chats</span>
+    <div class="main-card">
+      <div class="logo-area">
+        <i class="fas fa-download"></i>
+      </div>
+      <h1>All Downloader</h1>
+      <p class="tagline">Ultra Fast • 4K Quality • No Registration</p>
+
+      <form id="dlForm">
+        <div class="input-box">
+          <input type="url" id="urlInput" placeholder="https://www.youtube.com/watch?v=..." required>
+        </div>
+        <button type="submit" class="btn-glow">Generate Link</button>
+      </form>
+
+      <div id="loader" class="loader-container">
+        <div class="spinner"></div>
+        <div class="status-text" id="statusMsg">Connecting...</div>
+      </div>
+
+      <div id="resultArea">
+        <video id="videoPreview" controls></video>
+        <a id="dlLink" href="#" class="dl-final-btn" download>
+          <i class="fas fa-download"></i> SAVE VIDEO
+        </a>
+      </div>
+
+      <div class="platforms">
+        <i class="fab fa-youtube"></i>
+        <i class="fab fa-tiktok"></i>
+        <i class="fab fa-instagram"></i>
+        <i class="fab fa-facebook"></i>
+      </div>
     </div>
-    <div class="section-body">
-      <div class="chats-list" id="chatsList"><div class="empty">Loading…</div></div>
-    </div>
+
   </div>
 
 </div>
 
 <footer>
-  <p>Powered by <a href="https://t.me/MAHABUB_RAHMAN777">MR﹅ MAHABUB﹅ メꪜ</a> &nbsp;·&nbsp; MahabubBot Dashboard</p>
+  <p>&copy; 2026 Crafted by <a href="https://t.me/MAHABUB_RAHMAN777">MAHABUB RAHMAN</a></p>
 </footer>
 
 <script>
-function timeAgo(ts) {
-  if (!ts) return '—';
-  const diff = Date.now() - new Date(ts).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1)  return 'just now';
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h/24)}d ago`;
-}
-function initials(name) {
-  if (!name) return '?';
-  return name.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2)||'?';
-}
-const avatarColors = [
-  'linear-gradient(135deg,#7c3aed,#4f46e5)',
-  'linear-gradient(135deg,#0d9488,#0891b2)',
-  'linear-gradient(135deg,#b45309,#d97706)',
-  'linear-gradient(135deg,#1d4ed8,#2563eb)',
-  'linear-gradient(135deg,#be185d,#db2777)',
-  'linear-gradient(135deg,#15803d,#16a34a)',
-  'linear-gradient(135deg,#9333ea,#a855f7)',
-  'linear-gradient(135deg,#0369a1,#0284c7)',
-];
-function avatarGrad(id) {
-  return avatarColors[Math.abs(Number(String(id).replace(/\D/g,'')||0)) % avatarColors.length];
-}
-function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-function chatTypeTag(type) {
-  if (!type||type==='private') return '<span class="tag private">PRIVATE</span>';
-  if (type==='group')          return '<span class="tag group">GROUP</span>';
-  return `<span class="tag super">${escHtml(type.toUpperCase())}</span>`;
-}
 
-async function fetchStats() {
+// ════════════════════════════════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ════════════════════════════════════════════════════════════════════════════════════
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tabId = btn.dataset.tab;
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    btn.classList.add('active');
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════════════
+// LOAD STATS
+// ════════════════════════════════════════════════════════════════════════════════════
+async function loadStats() {
   try {
-    const res  = await fetch('/api/stats');
+    const res = await fetch('/api/stats');
     const data = await res.json();
-    if (!data.ok) return;
-
-    const fname = data.bot?.first_name || data.config?.botName || 'MahabubBot';
-    const uname = data.bot?.username   || '';
-    const bid   = data.bot?.id         || '';
-
-    // Header
-    document.getElementById('headerName').textContent    = fname;
-    document.getElementById('headerHandle').textContent  = uname ? `@${uname}` : '';
-    document.getElementById('avatarInitials').textContent = initials(fname);
+    if (!data.ok) throw new Error('API error');
 
     // Stat cards
-    document.getElementById('uptime').textContent      = data.uptime || '–';
-    document.getElementById('countTotal').textContent  = data.counts?.total  ?? '–';
-    document.getElementById('countGroups').textContent = data.counts?.groups ?? '–';
-    document.getElementById('countUsers').textContent  = data.counts?.users  ?? '–';
-    document.getElementById('countSub').textContent    = `${data.counts?.groups??0} groups · ${data.counts?.users??0} private`;
-    document.getElementById('cmdCount').textContent    = data.commands ?? '–';
-    document.getElementById('evtSub').textContent      = `${data.events??0} events`;
-    document.getElementById('memVal').textContent      = data.memory?.used ?? '–';
-
-    // System bars
-    const mu=data.memory?.used||0, mt=data.memory?.total||1, mp=Math.round((mu/mt)*100);
-    document.getElementById('memLabel').textContent = `${mu} MB / ${mt} MB (${mp}%)`;
-    document.getElementById('memBar').style.width   = `${Math.min(mp,100)}%`;
-    const cmds=data.commands||0;
-    document.getElementById('cmdLabel').textContent = `${cmds} commands · ${data.events||0} events`;
-    document.getElementById('cmdBar').style.width   = `${Math.min((cmds/60)*100,100)}%`;
+    document.getElementById('s-uptime').textContent = data.uptime;
+    document.getElementById('s-total').textContent = data.counts.total;
+    document.getElementById('s-groups').textContent = data.counts.groups;
+    document.getElementById('s-private').textContent = data.counts.users;
+    document.getElementById('s-cmds').textContent = data.commands;
+    document.getElementById('s-evts').textContent = `${data.events} events`;
+    document.getElementById('s-mem').textContent = `${data.memory.used} MB`;
 
     // Bot info
-    const cfg=data.config||{};
-    document.getElementById('infoName').textContent     = fname;
-    document.getElementById('infoUsername').textContent = uname ? `@${uname}` : '–';
-    document.getElementById('infoBotId').textContent    = bid || '–';
-    document.getElementById('infoAdmin').textContent    = (cfg.adminBot||[]).join(', ')||'–';
-    document.getElementById('infoPrefix').textContent   = cfg.prefix   || '–';
-    document.getElementById('infoLang').textContent     = cfg.language  || '–';
-    document.getElementById('infoDb').textContent       = cfg.dbName    || '–';
-    document.getElementById('infoWebhook').textContent  = cfg.useWebhook?(cfg.webhookUrl||'enabled'):'polling';
-    document.getElementById('infoCooldown').textContent = cfg.cooldownDefault!=null?`${cfg.cooldownDefault}s`:'–';
-    document.getElementById('infoCmds').textContent     = `${data.commands??0} / ${data.events??0}`;
-    document.getElementById('infoUptime').textContent   = data.uptime || '–';
+    document.getElementById('i-name').textContent = data.bot.first_name || '–';
+    document.getElementById('i-user').textContent = `@${data.bot.username || '–'}`;
+    document.getElementById('i-id').textContent = data.bot.id || '–';
+    document.getElementById('i-ce').textContent = `${data.commands} / ${data.events}`;
+    document.getElementById('hName').textContent = data.config.botName;
 
-    // Recent users
-    const ul = document.getElementById('usersList');
-    if (!data.users?.length) {
-      ul.innerHTML = '<div class="empty">No users yet — they appear after interacting with the bot.</div>';
-    } else {
-      ul.innerHTML = data.users.map(u => {
-        const name=u.name||`User ${u.id}`, handle=u.username?`@${u.username}`:`ID: ${u.id}`;
-        const msgs=u.messageCount?`💬 ${u.messageCount} messages`:'';
-        return `<div class="user-item">
-          <div class="user-avatar" style="background:${avatarGrad(u.id)}">${escHtml(initials(name))}</div>
-          <div style="min-width:0;flex:1">
-            <div class="user-name">${escHtml(name)}</div>
-            <div class="user-meta">${escHtml(handle)}</div>
-            ${msgs?`<div class="user-stat">${msgs}</div>`:''}
+    // Users list
+    const usersList = document.getElementById('users');
+    if (data.users && data.users.length > 0) {
+      usersList.innerHTML = data.users.map(u => {
+        const colors = ['#a78bfa', '#34d399', '#60a5fa', '#f59e0b', '#2dd4bf', '#f87171'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        return `
+          <div class="li">
+            <div class="av" style="background: ${color};">${(u.first_name || 'U')[0]}</div>
+            <div>
+              <div class="ln">${u.first_name || 'Unknown'}</div>
+              <div class="lm">@${u.username || 'no-username'}</div>
+            </div>
+            <div class="lt">${new Date(u.last_seen * 1000).toLocaleDateString()}</div>
           </div>
-          <div class="user-time">${timeAgo(u.lastSeen)}</div>
-        </div>`;
+        `;
       }).join('');
+    } else {
+      usersList.innerHTML = '<div class="empty">No users yet</div>';
     }
 
-    // Active chats
-    const cl = document.getElementById('chatsList');
-    if (!data.chats?.length) {
-      cl.innerHTML = '<div class="empty">No chats recorded yet.</div>';
-    } else {
-      cl.innerHTML = data.chats.map(c => {
-        const title=c.title||`Chat ${c.id}`, isPriv=!c.type||c.type==='private';
-        const meta=[c.username?`@${c.username}`:`ID: ${c.id}`,c.prefix?`prefix: ${c.prefix}`:''].filter(Boolean).join(' · ');
-        return `<div class="chat-item">
-          <div class="chat-icon">${isPriv?'🧑':'🏘'}</div>
-          <div style="min-width:0;flex:1">
-            <div class="chat-title">${escHtml(title)}</div>
-            <div class="chat-meta">${escHtml(meta)}</div>
+    // Chats list
+    const chatsList = document.getElementById('chats');
+    if (data.chats && data.chats.length > 0) {
+      chatsList.innerHTML = data.chats.map(c => {
+        const colors = ['#a78bfa', '#34d399', '#60a5fa', '#f59e0b', '#2dd4bf', '#f87171'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const icon = c.type === 'group' ? '👥' : '💬';
+        return `
+          <div class="li">
+            <div class="av" style="background: ${color};">${icon}</div>
+            <div>
+              <div class="ln">${c.title || 'Chat ' + c.id}</div>
+              <div class="lm">${c.type === 'group' ? 'Group' : 'Private'}</div>
+            </div>
+            <div class="lt">${new Date(c.last_activity * 1000).toLocaleDateString()}</div>
           </div>
-          ${chatTypeTag(c.type)}
-        </div>`;
+        `;
       }).join('');
+    } else {
+      chatsList.innerHTML = '<div class="empty">No active chats</div>';
     }
 
-    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
-  } catch(e) { console.error('Stats fetch error:',e); }
+    // Last update
+    document.getElementById('lu').textContent = new Date().toLocaleTimeString();
+  } catch (e) {
+    console.error('Stats load error:', e);
+  }
 }
 
-fetchStats();
-setInterval(fetchStats, 10000);
+// Auto refresh
+setInterval(loadStats, 10000);
+loadStats();
+
+// ════════════════════════════════════════════════════════════════════════════════════
+// SETTINGS
+// ════════════════════════════════════════════════════════════════════════════════════
+async function toggleSetting(el, key) {
+  try {
+    const isOn = !el.classList.contains('on');
+    const res = await fetch('/api/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, value: isOn })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      el.classList.toggle('on');
+    }
+  } catch (e) {
+    console.error('Toggle error:', e);
+  }
+}
+
+async function sendBroadcast() {
+  const msg = document.getElementById('broadcast-msg').value.trim();
+  if (!msg) {
+    Swal.fire({ icon: 'warning', title: 'Empty Message', text: 'Please type a message', background: '#111', color: '#fff', confirmButtonColor: '#a78bfa' });
+    return;
+  }
+  try {
+    const res = await fetch('/api/broadcast', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById('broadcast-result').textContent = `✅ Broadcast sent to ${data.count} chats!`;
+      document.getElementById('broadcast-msg').value = '';
+      setTimeout(() => document.getElementById('broadcast-result').textContent = '', 3000);
+    }
+  } catch (e) {
+    console.error('Broadcast error:', e);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════════
+// DOWNLOADER (Using your API)
+// ════════════════════════════════════════════════════════════════════════════════════
+const dlForm = document.getElementById('dlForm');
+const urlInput = document.getElementById('urlInput');
+const loader = document.querySelector('.loader-container');
+const statusMsg = document.getElementById('statusMsg');
+const resultArea = document.getElementById('resultArea');
+const videoPreview = document.getElementById('videoPreview');
+const dlLink = document.getElementById('dlLink');
+
+const funnyMessages = [
+  'Initiating connection...',
+  'Bypassing server restrictions...',
+  'Fetching high-quality streams...',
+  'Almost there, stay with us...',
+  'Optimizing for your device...',
+  'Converting file format...',
+  'Finalizing download link...',
+  'Rounding up the pixels...',
+  'Securing the tunnel...'
+];
+
+dlForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const url = urlInput.value.trim();
+
+  resultArea.style.display = 'none';
+  loader.style.display = 'block';
+  statusMsg.textContent = funnyMessages[0];
+
+  let success = false;
+  let finalData = null;
+  const maxRetries = 9;
+
+  for (let i = 0; i < maxRetries; i++) {
+    if (i > 0) statusMsg.textContent = funnyMessages[i] || 'Retrying connection...';
+
+    try {
+      const res = await fetch(`https://mahabub-aldl.vercel.app/api/dl?url=${encodeURIComponent(url)}`);
+      const data = await res.json();
+
+      if (res.ok && data.hd) {
+        success = true;
+        finalData = data;
+        break;
+      }
+    } catch (err) {
+      console.log(`Retry ${i+1} failed...`);
+    }
+    await new Promise(r => setTimeout(r, 1200));
+  }
+
+  loader.style.display = 'none';
+
+  if (success) {
+    videoPreview.src = finalData.hd;
+    const cleanTitle = (finalData.title || 'Video').replace(/[^\w]/g, '_');
+    dlLink.href = finalData.hd;
+    dlLink.download = `${cleanTitle}.mp4`;
+    resultArea.style.display = 'block';
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Link Generated!',
+      text: 'Your video is ready.',
+      confirmButtonColor: '#a78bfa',
+      background: '#111',
+      color: '#fff'
+    });
+  } else {
+    Swal.fire({
+      icon: 'error',
+      title: 'Server Timeout',
+      text: 'We tried 10 times. Please check the URL and try again.',
+      confirmButtonColor: '#f87171',
+      background: '#111',
+      color: '#fff'
+    });
+  }
+});
+
+// Particles.js
+particlesJS('particles-js', {
+  'particles': {
+    'number': { 'value': 60 },
+    'color': { 'value': '#a78bfa' },
+    'shape': { 'type': 'circle' },
+    'opacity': { 'value': 0.1 },
+    'size': { 'value': 2 },
+    'move': { 'enable': true, 'speed': 1 }
+  }
+});
+
 </script>
+
 </body>
 </html>
