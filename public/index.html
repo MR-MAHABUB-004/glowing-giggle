@@ -824,9 +824,31 @@ async function loadStats() {
 
     // Last update
     document.getElementById('lu').textContent = new Date().toLocaleTimeString();
+
+    // ── Sync switch states from live config ──
+    syncSwitch('sw-whitelist', data.config.whiteListMode?.enabled);
+    syncSwitch('sw-blacklist', data.config.blackListActive);
+    syncSwitch('sw-autorestart', data.config.autoRestart);
+    syncSwitch('sw-logging', data.config.messageLogging);
+
+    // ── Sync config editor fields if present ──
+    const fPrefix = document.getElementById('cfg-prefix');
+    const fName   = document.getElementById('cfg-botname');
+    const fCd     = document.getElementById('cfg-cooldown');
+    if (fPrefix && !fPrefix.matches(':focus')) fPrefix.value = data.config.prefix || '/';
+    if (fName   && !fName.matches(':focus'))   fName.value   = data.config.botName || '';
+    if (fCd     && !fCd.matches(':focus'))     fCd.value     = data.config.cooldownDefault ?? 3;
+
   } catch (e) {
     console.error('Stats load error:', e);
   }
+}
+
+function syncSwitch(id, state) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (state)  el.classList.add('on');
+  else        el.classList.remove('on');
 }
 
 // Auto refresh
@@ -839,6 +861,14 @@ loadStats();
 async function toggleSetting(el, key) {
   try {
     const isOn = !el.classList.contains('on');
+    // Optimistic UI
+    el.classList.toggle('on');
+    // Update the label next to the switch
+    const card = el.closest('.control-card');
+    if (card) {
+      const val = card.querySelector('.control-value');
+      if (val) val.textContent = isOn ? 'On' : 'Off';
+    }
     const res = await fetch('/api/toggle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -846,11 +876,151 @@ async function toggleSetting(el, key) {
     });
     const data = await res.json();
     if (data.ok) {
+      showToast(isOn ? `✅ ${key.split('.')[0]} enabled` : `⛔ ${key.split('.')[0]} disabled`, isOn ? 'green' : 'amber');
+    } else {
+      // Revert on failure
       el.classList.toggle('on');
+      showToast('❌ Toggle failed: ' + (data.error || 'unknown error'), 'red');
     }
   } catch (e) {
+    el.classList.toggle('on');
+    showToast('❌ Network error: ' + e.message, 'red');
     console.error('Toggle error:', e);
   }
+}
+
+// ─── Toast helper ────────────────────────────────────────────────────────────
+function showToast(msg, type = 'green') {
+  const colors = { green: '#34d399', amber: '#f59e0b', red: '#f87171', blue: '#60a5fa' };
+  const t = document.createElement('div');
+  t.textContent = msg;
+  Object.assign(t.style, {
+    position:'fixed', bottom:'24px', right:'24px', zIndex:'9999',
+    background: '#1a1a22', border: `1px solid ${colors[type] || colors.green}`,
+    color: colors[type] || colors.green, padding: '12px 18px', borderRadius: '10px',
+    fontSize: '13px', fontWeight: '600', boxShadow: '0 4px 20px rgba(0,0,0,.5)',
+    transition: 'opacity .4s', maxWidth: '320px',
+  });
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 450); }, 3000);
+}
+
+// ─── Whitelist manager ────────────────────────────────────────────────────────
+async function loadWhitelist() {
+  try {
+    const res = await fetch('/api/whitelist');
+    const data = await res.json();
+    if (!data.ok) return;
+    const list = document.getElementById('wl-list');
+    if (!list) return;
+    if (!data.allowedChatIds || data.allowedChatIds.length === 0) {
+      list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">No chat IDs in whitelist</div>';
+      return;
+    }
+    list.innerHTML = data.allowedChatIds.map(id => `
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+        <span style="font-family:var(--mono);font-size:13px;color:var(--accent);flex:1">${id}</span>
+        <button onclick="removeWhitelist('${id}')" style="background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.3);color:#f87171;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px">Remove</button>
+      </div>
+    `).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function addWhitelist() {
+  const inp = document.getElementById('wl-input');
+  const id = inp?.value?.trim();
+  if (!id) return showToast('Enter a chat ID first', 'amber');
+  try {
+    const res = await fetch('/api/whitelist', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ chatId: id })
+    });
+    const data = await res.json();
+    if (data.ok) { inp.value = ''; loadWhitelist(); showToast('✅ Added to whitelist', 'green'); }
+    else showToast('❌ ' + (data.error || 'Failed'), 'red');
+  } catch(e) { showToast('❌ ' + e.message, 'red'); }
+}
+
+async function removeWhitelist(id) {
+  try {
+    const res = await fetch('/api/whitelist', {
+      method: 'DELETE', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ chatId: id })
+    });
+    const data = await res.json();
+    if (data.ok) { loadWhitelist(); showToast('⛔ Removed from whitelist', 'amber'); }
+    else showToast('❌ ' + (data.error || 'Failed'), 'red');
+  } catch(e) { showToast('❌ ' + e.message, 'red'); }
+}
+
+// ─── Blacklist manager ────────────────────────────────────────────────────────
+async function loadBlacklist() {
+  try {
+    const res = await fetch('/api/blacklist');
+    const data = await res.json();
+    if (!data.ok) return;
+    const renderList = (ids, type, containerId) => {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      if (!ids || ids.length === 0) {
+        el.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:6px 0">None blacklisted</div>`;
+        return;
+      }
+      el.innerHTML = ids.map(id => `
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+          <span style="font-family:var(--mono);font-size:13px;color:#f87171;flex:1">${id}</span>
+          <button onclick="removeBlacklist('${id}','${type}')" style="background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.3);color:#f87171;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px">Remove</button>
+        </div>
+      `).join('');
+    };
+    renderList(data.users, 'user', 'bl-users');
+    renderList(data.chats, 'chat', 'bl-chats');
+  } catch(e) { console.error(e); }
+}
+
+async function addBlacklist(type) {
+  const inp = document.getElementById(`bl-input-${type}`);
+  const id = inp?.value?.trim();
+  if (!id) return showToast('Enter an ID first', 'amber');
+  try {
+    const res = await fetch('/api/blacklist', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ id, type })
+    });
+    const data = await res.json();
+    if (data.ok) { inp.value = ''; loadBlacklist(); showToast(`✅ ${type} ${id} blacklisted`, 'green'); }
+    else showToast('❌ ' + (data.error || 'Failed'), 'red');
+  } catch(e) { showToast('❌ ' + e.message, 'red'); }
+}
+
+async function removeBlacklist(id, type) {
+  try {
+    const res = await fetch('/api/blacklist', {
+      method: 'DELETE', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ id, type })
+    });
+    const data = await res.json();
+    if (data.ok) { loadBlacklist(); showToast(`⛔ Removed from blacklist`, 'amber'); }
+    else showToast('❌ ' + (data.error || 'Failed'), 'red');
+  } catch(e) { showToast('❌ ' + e.message, 'red'); }
+}
+
+// ─── Config editor ────────────────────────────────────────────────────────────
+async function saveConfig() {
+  const prefix   = document.getElementById('cfg-prefix')?.value?.trim();
+  const botName  = document.getElementById('cfg-botname')?.value?.trim();
+  const cooldown = parseInt(document.getElementById('cfg-cooldown')?.value || '3', 10);
+  if (!prefix) return showToast('Prefix cannot be empty', 'amber');
+  if (!botName) return showToast('Bot name cannot be empty', 'amber');
+  try {
+    const res = await fetch('/api/config', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ prefix, botName, cooldownDefault: cooldown })
+    });
+    const data = await res.json();
+    if (data.ok) showToast('✅ Config saved!', 'green');
+    else showToast('❌ ' + (data.error || 'Failed'), 'red');
+  } catch(e) { showToast('❌ ' + e.message, 'red'); }
 }
 
 async function sendBroadcast() {
