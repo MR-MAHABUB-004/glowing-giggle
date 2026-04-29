@@ -14,7 +14,7 @@ const TelegramBot = require("node-telegram-bot-api");
 const log    = require("./logger/log.js");
 const config = require("./config.json");
 
-// ── GLOBAL STATE ──────────────────────────────────────────────────────────────
+// ── GLOBAL STATE ────────────────────────────────────────────────────────────
 global.GoatBot = {
   startTime:     Date.now(),
   commands:      new Map(),
@@ -30,24 +30,24 @@ global.GoatBot = {
 global.utils        = require("./core/utils.js");
 global._reactTargets = new Map(); // stores msgId → senderId for reactBy:kick
 
-// ── VALIDATE ──────────────────────────────────────────────────────────────────
+// ── VALIDATE ────────────────────────────────────────────────────────────────
 if (!config.botToken || config.botToken === "YOUR_BOT_TOKEN_HERE") {
   console.error(chalk.red("\n❌  Set your bot token in config.json\n"));
   process.exit(1);
 }
 
-// ── LOAD COMMANDS + EVENTS ────────────────────────────────────────────────────
+// ── LOAD COMMANDS + EVENTS ──────────────────────────────────────────────────
 const { loadCommands } = require("./core/loadCommands.js");
 const { loadEvents }   = require("./core/loadEvents.js");
 loadCommands();
 loadEvents();
 
-// ── START BOT ─────────────────────────────────────────────────────────────────
+// ── START BOT ───────────────────────────────────────────────────────────────
 let bot;
 if (config.useWebhook && config.webhookUrl) {
   log.info("BOT", "Webhook mode");
   bot = new TelegramBot(config.botToken);
-  bot.setWebHook(`${config.webhookUrl.replace(/\/+$/, "")}/bot${config.botToken}`);
+  bot.setWebHook(`${config.webhookUrl.replace(/\/$/, "")}/bot${config.botToken}`);
 } else {
   log.info("BOT", "Polling mode");
   bot = new TelegramBot(config.botToken, {
@@ -63,7 +63,7 @@ if (config.useWebhook && config.webhookUrl) {
 global.GoatBot.bot = bot;
 global.bot         = bot;
 
-// ── HANDLERS ──────────────────────────────────────────────────────────────────
+// ── HANDLERS ────────────────────────────────────────────────────────────────
 const {
   handleMessage,
   handleCallbackQuery,
@@ -91,8 +91,8 @@ bot.on("message", msg => {
   }
 });
 
-// ── BROADCAST ─────────────────────────────────────────────────────────────────
-const { threadsData } = require("./core/database.js");
+// ── BROADCAST ───────────────────────────────────────────────────────────────
+const { threadsData, usersData } = require("./core/database.js");
 
 global.broadcast = async function(text, opts = {}) {
   const all = Object.values(await threadsData.getAll());
@@ -108,7 +108,7 @@ global.broadcast = async function(text, opts = {}) {
   return { sent, failed };
 };
 
-// ── EXPRESS ───────────────────────────────────────────────────────────────────
+// ── EXPRESS ─────────────────────────────────────────────────────────────────
 const app  = express();
 const port = process.env.PORT || config.port || 3000;
 
@@ -124,7 +124,7 @@ if (config.useWebhook) {
 
 app.get("/ping", (req, res) => res.json({ ok: true, uptime: process.uptime() }));
 
-// ── ENHANCED /api/stats ───────────────────────────────────────────────────────
+// ── ENHANCED /api/stats ─────────────────────────────────────────────────────
 app.get("/api/stats", async (req, res) => {
   const uptimeSec = Math.floor((Date.now() - global.GoatBot.startTime) / 1000);
   const d = Math.floor(uptimeSec / 86400), h = Math.floor((uptimeSec % 86400) / 3600);
@@ -141,20 +141,18 @@ app.get("/api/stats", async (req, res) => {
   // Build safe user list for dashboard (no sensitive data)
   const userList = allUsers.slice(0, 50).map(u => ({
     id:           u.id,
-    name:         u.data?.name         || u.name         || "Unknown",
-    username:     u.data?.username     || u.username     || null,
-    messageCount: u.data?.messageCount || u.messageCount || 0,
-    lastSeen:     u.updatedAt          || u.data?.lastSeen || Date.now(),
-  })).sort((a, b) => new Date(b.lastSeen) - new Date(a.lastSeen));
+    first_name:   u.name         || "Unknown",
+    username:     u.username     || null,
+    messageCount: u.messageCount || 0,
+    last_seen:    u.updatedAt    || u.lastSeen || Math.floor(Date.now() / 1000),
+  })).sort((a, b) => b.last_seen - a.last_seen);
 
   // Build safe chat list
   const chatList = allChats.slice(0, 100).map(c => ({
-    id:        c.id,
-    title:     c.data?.title    || c.title    || "Unknown",
-    type:      c.data?.type     || c.type     || "private",
-    prefix:    c.data?.prefix   || null,
-    adminOnly: c.data?.adminOnly || false,
-    username:  c.data?.username || null,
+    id:          c.id,
+    title:       c.title || "Unknown",
+    type:        c.type  || "private",
+    last_activity: c.updatedAt || Math.floor(Date.now() / 1000),
   }));
 
   res.json({
@@ -167,8 +165,8 @@ app.get("/api/stats", async (req, res) => {
     },
     counts:   {
       total:  allChats.length,
-      groups: allChats.filter(c => (c.data?.type || c.type) !== "private").length,
-      users:  allChats.filter(c => (c.data?.type || c.type) === "private").length,
+      groups: allChats.filter(c => c.type !== "private").length,
+      users:  allChats.filter(c => c.type === "private").length,
     },
     commands: global.GoatBot.commands.size,
     events:   global.GoatBot.eventCommands.size,
@@ -192,7 +190,42 @@ app.get("/api/stats", async (req, res) => {
   });
 });
 
-// ── /api/config  (POST) — write config.json ───────────────────────────────────
+// ── /api/toggle (POST) — toggle settings ────────────────────────────────────
+app.post("/api/toggle", async (req, res) => {
+  try {
+    const { key, value } = req.body || {};
+    if (!key) return res.status(400).json({ ok: false, error: "key required" });
+
+    const updates = {};
+    
+    // Handle different setting keys
+    if (key === "whiteListMode") {
+      updates.whiteListMode = { ...config.whiteListMode, enabled: value };
+    } else if (key === "autoRestart") {
+      updates.autoRestart = value;
+    } else if (key === "messageLogging") {
+      updates.messageLogging = value;
+    } else if (key === "blackListActive") {
+      updates.blackListActive = value;
+    } else {
+      updates[key] = value;
+    }
+
+    // Update config.json
+    const cfgPath = path.join(__dirname, "config.json");
+    const newConfig = { ...config, ...updates };
+    fs.writeFileSync(cfgPath, JSON.stringify(newConfig, null, 2), "utf8");
+    Object.assign(config, newConfig);
+
+    log.success("CONFIG", `Toggle ${key} = ${value}`);
+    res.json({ ok: true, setting: key, value });
+  } catch (e) {
+    log.error("TOGGLE", e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ── /api/config (POST) — write config.json ──────────────────────────────────
 app.post("/api/config", async (req, res) => {
   try {
     const updates = req.body || {};
@@ -211,27 +244,27 @@ app.post("/api/config", async (req, res) => {
   }
 });
 
-// ── /api/broadcast  (POST) — send message to all chats ───────────────────────
+// ── /api/broadcast (POST) — send message to all chats ────────────────────────
 app.post("/api/broadcast", async (req, res) => {
   try {
-    const { text } = req.body || {};
-    if (!text) return res.status(400).json({ ok: false, error: "text required" });
-    log.info("BROADCAST", `Dashboard broadcast: "${text.slice(0, 60)}…"`);
-    const result = await global.broadcast(text);
-    res.json({ ok: true, ...result });
+    const { message } = req.body || {};
+    if (!message) return res.status(400).json({ ok: false, error: "message required" });
+    log.info("BROADCAST", `Dashboard broadcast: "${message.slice(0, 60)}…"`);
+    const result = await global.broadcast(message);
+    res.json({ ok: true, count: result.sent, sent: result.sent, failed: result.failed });
   } catch (e) {
     log.error("BROADCAST", e.message);
     res.status(500).json({ ok: false, error: e.message });
   }
 });
 
-// ── /api/dl  (GET) — proxy video download info ────────────────────────────────
+// ── /api/dl (GET) — proxy video download info ───────────────────────────────
 app.get("/api/dl", async (req, res) => {
   const { url } = req.query;
   if (!url) return res.status(400).json({ ok: false, error: "url required" });
   try {
     const axios  = require("axios");
-    const apiUrl = `${config.api || "https://mahabub-apis.fun"}/mahabub/dl?url=${encodeURIComponent(url)}`;
+    const apiUrl = `https://mahabub-aldl.vercel.app/api/dl?url=${encodeURIComponent(url)}`;
     const r      = await axios.get(apiUrl, { timeout: 15000 });
     res.json({ ok: true, ...r.data });
   } catch (e) {
@@ -239,7 +272,7 @@ app.get("/api/dl", async (req, res) => {
   }
 });
 
-// ── /api/restart  (POST) — graceful restart ───────────────────────────────────
+// ── /api/restart (POST) — graceful restart ──────────────────────────────────
 app.post("/api/restart", (req, res) => {
   log.warn("PROCESS", "Restart requested from dashboard");
   res.json({ ok: true, message: "Restarting…" });
@@ -258,7 +291,7 @@ app.listen(port, () => {
   keepAlive(config.webhookUrl || `http://localhost:${port}/ping`);
 });
 
-// ── BANNER ────────────────────────────────────────────────────────────────────
+// ── BANNER ──────────────────────────────────────────────────────────────────
 figlet(config.botName || "GoatBot", { font: "Slant" }, (err, data) => {
   if (!err) console.log(chalk.cyan.bold(data));
   log.success("BOOT", `${config.botName} — ${global.GoatBot.commands.size} cmds | ${global.GoatBot.eventCommands.size} events`);
