@@ -1,1798 +1,545 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GoatBot Dashboard</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MahabubBot — Dashboard</title>
 <style>
-:root {
-  --bg:      #07090f;
-  --bg2:     #0c0f1a;
-  --bg3:     #111626;
-  --card:    #131829;
-  --card2:   #1a2035;
-  --border:  rgba(255,255,255,0.06);
-  --bh:      rgba(255,255,255,0.11);
-  --accent:  #4f6ef7;
-  --accent2: #7c5df9;
-  --green:   #0fd98a;
-  --red:     #f74f6e;
-  --amber:   #f7b84f;
-  --cyan:    #4fd9f7;
-  --text:    #dde4f5;
-  --muted:   #4e5c80;
-  --muted2:  #2e3654;
-  --mono:    'IBM Plex Mono', monospace;
-  --sans:    'Outfit', sans-serif;
-  --sw: 230px;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);display:flex}
+  :root {
+    --bg:       #0d0d0f;
+    --surface:  #18181c;
+    --card:     #1e1e24;
+    --border:   rgba(255,255,255,0.07);
+    --text:     #f0f0f2;
+    --muted:    #888;
+    --accent:   #a78bfa;
+    --accent2:  #34d399;
+    --accent3:  #f59e0b;
+    --red:      #f87171;
+    --blue:     #60a5fa;
+    --radius:   12px;
+    --font:     'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    padding: 0 0 60px;
+  }
 
-/* ── MOBILE RESPONSIVE ── */
-@media(max-width:700px){
-  :root{--sw:0px}
-  html,body{overflow:auto;height:auto}
-  body{flex-direction:column;overflow-x:hidden}
+  /* ── Header ── */
+  header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 32px 24px 28px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% -20%, rgba(167,139,250,0.15) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .bot-avatar {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #7c3aed);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; font-weight: 700; color: #fff;
+    margin: 0 auto 14px;
+    border: 2px solid rgba(167,139,250,0.4);
+    box-shadow: 0 0 24px rgba(167,139,250,0.25);
+    letter-spacing: -1px;
+  }
+  header h1 {
+    font-size: 22px; font-weight: 700; letter-spacing: 0.5px;
+    color: #fff;
+  }
+  .bot-handle {
+    font-size: 14px; color: var(--accent); margin-top: 4px; font-weight: 500;
+  }
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(52,211,153,0.12); border: 1px solid rgba(52,211,153,0.3);
+    color: var(--accent2); padding: 4px 12px; border-radius: 20px;
+    font-size: 12px; font-weight: 600; margin-top: 12px; letter-spacing: 0.5px;
+  }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--accent2);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
 
-  /* Sidebar becomes a slide-in drawer */
-  .sb{width:240px;transform:translateX(-100%);transition:transform .25s ease;z-index:500;height:100%;position:fixed}
-  .sb.open{transform:translateX(0)}
+  /* ── Layout ── */
+  .container { max-width: 900px; margin: 0 auto; padding: 28px 20px 0; }
 
-  /* Overlay behind drawer */
-  .sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:499}
-  .sb-overlay.show{display:block}
+  /* ── Stat grid ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .stat-card.purple::after { background: var(--accent); }
+  .stat-card.green::after  { background: var(--accent2); }
+  .stat-card.amber::after  { background: var(--accent3); }
+  .stat-card.blue::after   { background: var(--blue); }
+  .stat-card.red::after    { background: var(--red); }
+  .stat-card.teal::after   { background: #2dd4bf; }
+  .stat-icon { font-size: 22px; margin-bottom: 10px; display: block; }
+  .stat-label {
+    font-size: 11px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.8px; font-weight: 600; margin-bottom: 4px;
+  }
+  .stat-value {
+    font-size: 26px; font-weight: 700; color: var(--text); line-height: 1;
+  }
+  .stat-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
 
-  /* Hamburger button */
-  .mob-menu-btn{display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;color:var(--text);flex-shrink:0}
+  /* ── Section cards ── */
+  .section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .section-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-header h2 { font-size: 14px; font-weight: 600; color: var(--text); flex: 1; }
+  .section-body { padding: 16px 18px; }
 
-  /* Main takes full width */
-  .main{margin-left:0!important;width:100%;height:100%;min-height:100vh}
-  .topbar{padding:0 14px;height:50px;gap:8px;flex-wrap:nowrap}
-  .topbar-right{gap:6px;overflow:hidden}
-  .tb-chip span{display:none}
-  .content{padding:14px 12px}
+  /* ── Progress bar ── */
+  .progress-wrap { margin-bottom: 16px; }
+  .progress-label {
+    display: flex; justify-content: space-between;
+    font-size: 13px; color: var(--muted); margin-bottom: 6px;
+  }
+  .progress-label span:last-child { color: var(--text); font-weight: 600; }
+  .progress-bar {
+    height: 6px; background: rgba(255,255,255,0.07); border-radius: 3px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; border-radius: 3px; transition: width 0.6s ease;
+    background: linear-gradient(90deg, var(--accent), var(--blue));
+  }
+  .progress-fill.green { background: linear-gradient(90deg, var(--accent2), #0d9488); }
 
-  /* Stack two/three-col grids */
-  .two-col,.three-col{grid-template-columns:1fr!important}
+  /* ── Info table ── */
+  .info-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-key { color: var(--muted); }
+  .info-val { color: var(--text); font-weight: 500; font-family: monospace; font-size: 13px; }
+  .info-val a { color: var(--accent); text-decoration: none; }
+  .info-val a:hover { text-decoration: underline; }
 
-  /* Stat grid smaller min */
-  .stat-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:9px}
+  /* ── Config grid ── */
+  .config-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+  }
+  .config-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .config-key { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 4px; }
+  .config-val { font-size: 13px; color: var(--text); font-family: monospace; word-break: break-all; }
 
-  /* Table horizontal scroll */
-  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  table{min-width:520px}
+  /* ── Users list ── */
+  .users-list { display: flex; flex-direction: column; gap: 8px; }
+  .user-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .user-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .user-name { font-size: 14px; font-weight: 500; color: var(--text); }
+  .user-meta { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .user-stat { font-size: 11px; color: var(--accent2); margin-top: 2px; }
+  .user-time { margin-left: auto; font-size: 11px; color: var(--muted); text-align: right; white-space: nowrap; }
 
-  /* Cmd grid single col */
-  .cmd-grid{grid-template-columns:1fr}
+  /* ── Chats list ── */
+  .chats-list { display: flex; flex-direction: column; gap: 8px; }
+  .chat-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .chat-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+    background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.2);
+  }
+  .chat-title { font-size: 14px; font-weight: 500; color: var(--text); }
+  .chat-meta  { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .tag {
+    display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 4px;
+    font-weight: 600; letter-spacing: 0.3px;
+  }
+  .tag.group   { background: rgba(96,165,250,0.15); color: var(--blue); }
+  .tag.private { background: rgba(167,139,250,0.15); color: var(--accent); }
+  .tag.super   { background: rgba(52,211,153,0.15); color: var(--accent2); }
 
-  /* Platform grid */
-  .plt-grid{grid-template-columns:repeat(auto-fill,minmax(90px,1fr))}
+  /* ── Footer ── */
+  footer {
+    text-align: center;
+    padding: 32px 20px 0;
+    font-size: 12px; color: var(--muted);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
 
-  /* DL row stack */
-  .dl-row{flex-direction:column}
-  .dl-fetch{width:100%;justify-content:center}
-
-  /* Settings rows */
-  .set-row{flex-direction:column;align-items:flex-start;gap:8px}
-  .set-inp.w180{width:100%}
-  .set-inp.w80{width:100%}
-
-  /* Blacklist two-col */
-  .bl-inp-row{flex-wrap:wrap}
-
-  /* User grid */
-  .user-grid{grid-template-columns:1fr}
-
-  /* Page header stack */
-  .ph{flex-direction:column;gap:10px;align-items:flex-start}
-  .ph-actions{flex-wrap:wrap;width:100%}
-
-  /* Modal */
-  .modal{width:95%;padding:20px}
-
-  /* Log wrap */
-  .log-wrap{max-height:60vh}
-
-  /* Downloader config grid */
-  div[style*="grid-template-columns:1fr 1fr 1fr"]{display:grid!important;grid-template-columns:1fr!important}
-}
-
-/* MOBILE MENU BUTTON (hidden on desktop) */
-.mob-menu-btn{display:none}
-
-/* SIDEBAR */
-.sb{width:var(--sw);min-width:var(--sw);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;position:fixed;left:0;top:0;z-index:200}
-.sb-logo{padding:22px 20px 18px;border-bottom:1px solid var(--border)}
-.sb-logo .goat{font-size:1.5rem}
-.sb-logo .name{font-size:1.1rem;font-weight:800;letter-spacing:-0.03em;margin-top:4px;background:linear-gradient(90deg,#fff 0%,#8b9cd0 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.sb-logo .ver{font-family:var(--mono);font-size:0.6rem;color:var(--muted);margin-top:2px}
-.sb-bot-info{margin:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px}
-.sb-bot-info .avatar{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
-.sb-bot-info .bname{font-size:0.8rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sb-bot-info .bid{font-family:var(--mono);font-size:0.6rem;color:var(--muted);margin-top:1px}
-.sb-scroll{flex:1;overflow-y:auto;padding:8px 10px}
-.sb-scroll::-webkit-scrollbar{width:0}
-.nav-grp{margin-bottom:2px}
-.nav-lbl{font-family:var(--mono);font-size:0.55rem;color:var(--muted2);letter-spacing:0.1em;text-transform:uppercase;padding:12px 8px 4px}
-.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;cursor:pointer;color:var(--muted);font-size:0.82rem;font-weight:600;transition:all 0.13s;border:none;background:none;width:100%;text-align:left;position:relative}
-.nav-item:hover{background:rgba(255,255,255,0.04);color:var(--text)}
-.nav-item.active{background:rgba(79,110,247,0.14);color:var(--accent)}
-.nav-item .ni{width:15px;height:15px;flex-shrink:0}
-.nav-item .nbadge{margin-left:auto;background:var(--card2);border-radius:99px;font-family:var(--mono);font-size:0.55rem;padding:2px 6px;color:var(--muted);min-width:18px;text-align:center}
-.nav-item.active .nbadge{background:rgba(79,110,247,0.2);color:var(--accent)}
-.sb-footer{padding:12px;border-top:1px solid var(--border)}
-.status-row{display:flex;align-items:center;gap:7px}
-.dot-live{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2.5s infinite}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(0.8)}}
-.status-txt{font-family:var(--mono);font-size:0.62rem;color:var(--green)}
-.uptime-txt{font-family:var(--mono);font-size:0.58rem;color:var(--muted);margin-top:4px}
-
-/* MAIN */
-.main{margin-left:var(--sw);flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden}
-.topbar{height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0}
-.topbar-left{display:flex;align-items:center;gap:14px}
-.topbar-title{font-size:0.9rem;font-weight:700}
-.topbar-right{display:flex;align-items:center;gap:10px}
-.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-family:var(--mono);font-size:0.62rem;color:var(--muted);cursor:pointer;transition:border-color .15s}
-.tb-chip:hover{border-color:var(--bh)}
-.tb-btn{background:var(--accent);border:none;border-radius:7px;padding:6px 14px;color:#fff;font-family:var(--sans);font-size:0.75rem;font-weight:700;cursor:pointer;transition:opacity .15s}
-.tb-btn:hover{opacity:.85}
-.tb-btn.danger{background:var(--red)}
-.content{flex:1;overflow-y:auto;padding:24px 28px}
-.content::-webkit-scrollbar{width:4px}
-.content::-webkit-scrollbar-thumb{background:var(--muted2);border-radius:99px}
-
-/* PAGES */
-.page{display:none;animation:fi .25s ease}
-.page.active{display:block}
-@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
-
-/* PAGE HEADER */
-.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
-.ph-left h2{font-size:1.3rem;font-weight:800;letter-spacing:-0.03em}
-.ph-left p{font-family:var(--mono);font-size:0.65rem;color:var(--muted);margin-top:3px}
-.ph-actions{display:flex;gap:8px}
-
-/* CARDS & GRID */
-.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px;margin-bottom:24px}
-.stat-card{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:18px;transition:border-color .2s;cursor:default;position:relative;overflow:hidden}
-.stat-card:hover{border-color:var(--bh)}
-.stat-card::after{content:'';position:absolute;top:-20px;right:-20px;width:60px;height:60px;border-radius:50%;background:radial-gradient(circle,rgba(79,110,247,0.08) 0%,transparent 70%)}
-.stat-lbl{font-family:var(--mono);font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
-.stat-val{font-size:1.6rem;font-weight:800;letter-spacing:-.04em;line-height:1}
-.stat-val.accent{color:var(--accent)}
-.stat-val.green{color:var(--green)}
-.stat-val.amber{color:var(--amber)}
-.stat-val.mono{font-family:var(--mono);font-size:1rem;font-weight:500}
-.stat-sub{font-family:var(--mono);font-size:0.6rem;color:var(--muted);margin-top:5px}
-.stat-trend{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:0.58rem;color:var(--green);margin-top:4px}
-
-/* SECTION */
-.sec{margin-bottom:24px}
-.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.sec-title{font-family:var(--mono);font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
-.sec-actions{display:flex;gap:7px}
-
-/* TABLE */
-.tbl-wrap{background:var(--card);border:1px solid var(--border);border-radius:13px;overflow:hidden}
-table{width:100%;border-collapse:collapse}
-thead{background:var(--card2)}
-th{text-align:left;padding:10px 16px;font-family:var(--mono);font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border);font-weight:400}
-td{padding:11px 16px;font-size:0.8rem;border-bottom:1px solid var(--border)}
-tr:last-child td{border-bottom:none}
-tbody tr{transition:background .1s}
-tbody tr:hover{background:rgba(255,255,255,0.02)}
-
-/* BADGES/TAGS */
-.tag{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:5px;font-family:var(--mono);font-size:0.58rem;font-weight:600}
-.t-priv{background:rgba(79,110,247,0.12);color:var(--accent);border:1px solid rgba(79,110,247,0.2)}
-.t-group{background:rgba(15,217,138,0.1);color:var(--green);border:1px solid rgba(15,217,138,0.18)}
-.t-num{background:var(--card2);color:var(--muted);border:1px solid var(--border);min-width:24px;text-align:center}
-.t-ok{background:rgba(15,217,138,0.1);color:var(--green);border:1px solid rgba(15,217,138,0.18)}
-.t-warn{background:rgba(247,184,79,0.1);color:var(--amber);border:1px solid rgba(247,184,79,0.18)}
-.t-err{background:rgba(247,79,110,0.1);color:var(--red);border:1px solid rgba(247,79,110,0.18)}
-.t-info{background:rgba(79,217,247,0.1);color:var(--cyan);border:1px solid rgba(79,217,247,0.18)}
-.t-cat{background:var(--card2);color:var(--muted);border:1px solid var(--border)}
-
-/* BUTTONS */
-.btn{border:none;border-radius:8px;padding:8px 14px;font-family:var(--sans);font-size:0.75rem;font-weight:700;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
-.btn-primary{background:var(--accent);color:#fff}
-.btn-primary:hover{opacity:.85}
-.btn-ghost{background:var(--card2);color:var(--muted);border:1px solid var(--border)}
-.btn-ghost:hover{border-color:var(--bh);color:var(--text)}
-.btn-danger{background:rgba(247,79,110,0.12);color:var(--red);border:1px solid rgba(247,79,110,0.2)}
-.btn-danger:hover{background:rgba(247,79,110,0.2)}
-.btn-green{background:rgba(15,217,138,0.12);color:var(--green);border:1px solid rgba(15,217,138,0.2)}
-.btn-green:hover{background:rgba(15,217,138,0.2)}
-.btn-sm{padding:5px 10px;font-size:0.68rem}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-
-/* ACTIVITY BARS */
-.act-wrap{display:grid;grid-template-columns:repeat(24,1fr);gap:3px;height:44px;margin-bottom:22px}
-.act-bar{border-radius:3px;background:var(--card2);position:relative;overflow:hidden;cursor:pointer}
-.act-fill{position:absolute;bottom:0;left:0;right:0;background:var(--accent);opacity:.65;border-radius:3px 3px 0 0;transition:opacity .15s}
-.act-bar:hover .act-fill{opacity:1}
-
-/* VIDEO DOWNLOADER */
-.dl-hero{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;margin-bottom:20px;position:relative;overflow:hidden;text-align:center}
-.dl-hero::before{content:'';position:absolute;top:-80px;left:50%;transform:translateX(-50%);width:400px;height:250px;background:radial-gradient(ellipse,rgba(79,110,247,0.1) 0%,transparent 70%);pointer-events:none}
-.dl-hero h2{font-size:1.4rem;font-weight:800;letter-spacing:-.03em;margin-bottom:4px}
-.dl-hero p{color:var(--muted);font-family:var(--mono);font-size:0.68rem;margin-bottom:22px}
-.dl-row{display:flex;gap:8px;max-width:580px;margin:0 auto}
-.dl-inp{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:11px 14px;color:var(--text);font-family:var(--mono);font-size:0.75rem;outline:none;transition:border-color .2s}
-.dl-inp:focus{border-color:var(--accent)}
-.dl-inp::placeholder{color:var(--muted2)}
-.dl-fetch{background:var(--accent);border:none;border-radius:9px;padding:11px 18px;color:#fff;font-family:var(--sans);font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:opacity .15s, transform .1s;display:flex;align-items:center;gap:6px}
-.dl-fetch:hover{opacity:.88}
-.dl-fetch:active{transform:scale(.97)}
-.dl-fetch:disabled{opacity:.45;cursor:not-allowed}
-.dl-err{background:rgba(247,79,110,0.08);border:1px solid rgba(247,79,110,0.18);border-radius:8px;padding:10px 14px;font-family:var(--mono);font-size:0.68rem;color:var(--red);margin-top:12px;display:none}
-.dl-err.show{display:block}
-
-/* PROGRESS */
-.dl-prog{margin:14px 0;display:none}
-.dl-prog.show{display:block}
-.dl-prog-top{display:flex;justify-content:space-between;font-family:var(--mono);font-size:0.6rem;color:var(--muted);margin-bottom:5px}
-.dl-prog-bar{height:3px;background:var(--card2);border-radius:99px;overflow:hidden}
-.dl-prog-fill{height:100%;background:var(--accent);border-radius:99px;transition:width .3s ease}
-
-/* DL RESULT */
-.dl-result{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:20px;display:none;margin-bottom:20px}
-.dl-result.show{display:block;animation:fi .25s ease}
-.dl-result-top{display:flex;align-items:center;gap:12px;margin-bottom:16px}
-.dl-thumb{width:72px;height:48px;border-radius:7px;background:var(--card2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:1rem;flex-shrink:0}
-.dl-meta{flex:1;min-width:0}
-.dl-vtitle{font-size:0.85rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
-.dl-vplat{font-family:var(--mono);font-size:0.62rem;color:var(--muted)}
-.dl-opts{display:flex;gap:8px;flex-wrap:wrap}
-.dl-opt{flex:1;min-width:130px;background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:border-color .2s,background .2s;text-decoration:none;color:var(--text)}
-.dl-opt:hover{border-color:var(--accent);background:rgba(79,110,247,0.06)}
-.dl-opt .dq{font-size:0.8rem;font-weight:700;margin-bottom:2px}
-.dl-opt .ds{font-family:var(--mono);font-size:0.6rem;color:var(--muted)}
-.dl-opt .di{color:var(--accent);font-size:.9rem}
-
-/* PLATFORM GRID */
-.plt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
-.plt-card{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:14px 10px;text-align:center;transition:border-color .2s,transform .15s}
-.plt-card:hover{border-color:var(--bh);transform:translateY(-2px)}
-.plt-icon{font-size:1.4rem;margin-bottom:5px}
-.plt-name{font-size:0.72rem;font-weight:700;margin-bottom:2px}
-.plt-st{font-family:var(--mono);font-size:0.58rem;color:var(--green)}
-
-/* HISTORY */
-.hist-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
-.hist-item:last-child{border-bottom:none}
-.hist-thumb{width:40px;height:28px;border-radius:5px;background:var(--card2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.8rem;color:var(--muted2)}
-.hist-info{flex:1;min-width:0}
-.hist-title{font-size:0.78rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hist-meta{font-family:var(--mono);font-size:0.58rem;color:var(--muted);margin-top:2px}
-
-/* COMMAND LIST */
-.cmd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
-.cmd-card{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:14px;transition:border-color .2s}
-.cmd-card:hover{border-color:var(--bh)}
-.cmd-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.cmd-name{font-size:.85rem;font-weight:800;font-family:var(--mono)}
-.cmd-role{font-family:var(--mono);font-size:.6rem}
-.cmd-desc{font-size:.72rem;color:var(--muted);margin-bottom:8px;line-height:1.5}
-.cmd-meta{display:flex;gap:5px;flex-wrap:wrap}
-.cmd-toggle{display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
-.cmd-toggle-label{font-family:var(--mono);font-size:.6rem;color:var(--muted)}
-
-/* TOGGLE SWITCH */
-.toggle{width:36px;height:20px;background:var(--card2);border:1px solid var(--border);border-radius:99px;cursor:pointer;position:relative;transition:background .2s,border-color .2s;flex-shrink:0}
-.toggle.on{background:rgba(79,110,247,0.25);border-color:var(--accent)}
-.toggle::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--muted2);transition:transform .2s,background .2s}
-.toggle.on::after{transform:translateX(16px);background:var(--accent)}
-
-/* SETTINGS */
-.set-sec{background:var(--card);border:1px solid var(--border);border-radius:13px;margin-bottom:16px;overflow:hidden}
-.set-sec-hdr{padding:16px 20px;border-bottom:1px solid var(--border);font-size:.85rem;font-weight:700;display:flex;align-items:center;gap:8px}
-.set-row{display:flex;align-items:center;justify-content:space-between;padding:13px 20px;border-bottom:1px solid var(--border)}
-.set-row:last-child{border-bottom:none}
-.set-info .set-name{font-size:.82rem;font-weight:600;margin-bottom:2px}
-.set-info .set-desc{font-family:var(--mono);font-size:.6rem;color:var(--muted)}
-.set-inp{background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:7px 11px;color:var(--text);font-family:var(--mono);font-size:.72rem;outline:none;transition:border-color .2s}
-.set-inp:focus{border-color:var(--accent)}
-.set-inp.w80{width:80px}
-.set-inp.w180{width:180px}
-
-/* ANALYTICS CHARTS */
-.chart-card{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:20px;margin-bottom:16px}
-.chart-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.chart-title{font-size:.82rem;font-weight:700}
-.chart-legend{display:flex;gap:14px}
-.leg-item{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:.58rem;color:var(--muted)}
-.leg-dot{width:6px;height:6px;border-radius:50%}
-.bar-chart{display:flex;align-items:flex-end;gap:4px;height:80px}
-.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
-.bar-fill{width:100%;border-radius:3px 3px 0 0;min-height:3px;transition:opacity .15s}
-.bar-fill:hover{opacity:1 !important}
-.bar-lbl{font-family:var(--mono);font-size:.5rem;color:var(--muted2);line-height:1}
-.mini-bars{display:flex;gap:2px;align-items:flex-end;height:30px}
-.mini-bar{width:8px;border-radius:2px 2px 0 0;min-height:2px}
-.cmd-rank-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
-.cmd-rank-row:last-child{border-bottom:none}
-.cmd-rank-name{font-family:var(--mono);font-size:.7rem;flex:1}
-.cmd-rank-bar-wrap{flex:2;height:5px;background:var(--card2);border-radius:99px;overflow:hidden}
-.cmd-rank-bar-fill{height:100%;background:var(--accent);border-radius:99px}
-.cmd-rank-count{font-family:var(--mono);font-size:.62rem;color:var(--muted);min-width:28px;text-align:right}
-
-/* LOGS */
-.log-wrap{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px;font-family:var(--mono);font-size:.68rem;line-height:1.9;max-height:calc(100vh - 220px);overflow-y:auto}
-.log-wrap::-webkit-scrollbar{width:3px}
-.log-wrap::-webkit-scrollbar-thumb{background:var(--muted2);border-radius:99px}
-.log-line{display:flex;gap:12px;padding:1px 0}
-.log-ts{color:var(--muted2);flex-shrink:0;min-width:70px}
-.log-lvl{flex-shrink:0;min-width:52px}
-
-/* BROADCAST */
-.bc-wrap{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:20px;margin-bottom:16px}
-.bc-textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:12px 14px;color:var(--text);font-family:var(--mono);font-size:.75rem;resize:vertical;min-height:100px;outline:none;transition:border-color .2s;margin-bottom:12px;line-height:1.6}
-.bc-textarea:focus{border-color:var(--accent)}
-.bc-result{margin-top:12px;padding:10px 14px;border-radius:8px;font-family:var(--mono);font-size:.7rem;display:none}
-.bc-result.show{display:block}
-.bc-result.ok{background:rgba(15,217,138,0.08);border:1px solid rgba(15,217,138,0.18);color:var(--green)}
-.bc-result.err{background:rgba(247,79,110,0.08);border:1px solid rgba(247,79,110,0.18);color:var(--red)}
-
-/* USERS MANAGEMENT */
-.user-card{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:14px;display:flex;gap:12px;align-items:center;transition:border-color .2s}
-.user-card:hover{border-color:var(--bh)}
-.user-av{width:38px;height:38px;border-radius:8px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;color:var(--muted)}
-.user-name-row{font-size:.82rem;font-weight:700;margin-bottom:2px}
-.user-id-row{font-family:var(--mono);font-size:.6rem;color:var(--muted)}
-.user-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
-
-/* BLACKLIST */
-.bl-inp-row{display:flex;gap:8px;margin-bottom:12px}
-.bl-list-item{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:var(--card2);border-radius:8px;margin-bottom:6px}
-.bl-list-item .bl-id{font-family:var(--mono);font-size:.72rem}
-.bl-list-item .bl-rm{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem;padding:2px 6px;border-radius:5px;transition:color .15s,background .15s}
-.bl-list-item .bl-rm:hover{color:var(--red);background:rgba(247,79,110,0.1)}
-
-/* WHITELIST */
-.wl-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-
-/* MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
-.modal-overlay.show{display:flex}
-.modal{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;width:90%;max-width:440px}
-.modal h3{font-size:1rem;font-weight:800;margin-bottom:6px}
-.modal p{font-size:.8rem;color:var(--muted);margin-bottom:18px;line-height:1.5}
-.modal-actions{display:flex;gap:8px;justify-content:flex-end}
-
-/* TOAST */
-.toast{position:fixed;bottom:24px;right:24px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-family:var(--mono);font-size:.7rem;z-index:2000;transform:translateY(20px);opacity:0;transition:all .3s;pointer-events:none}
-.toast.show{transform:translateY(0);opacity:1}
-.toast.ok{border-color:rgba(15,217,138,.3);color:var(--green)}
-.toast.err{border-color:rgba(247,79,110,.3);color:var(--red)}
-.toast.info{border-color:rgba(79,110,247,.3);color:var(--accent)}
-
-/* 2-COL GRID */
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  /* ── Refresh indicator ── */
+  .refresh-hint {
+    font-size: 11px; color: var(--muted); text-align: right;
+    padding: 4px 0 12px; display: flex; align-items: center; justify-content: flex-end; gap: 5px;
+  }
+  .refresh-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--accent2);
+    animation: pulse 2s infinite;
+  }
 </style>
 </head>
 <body>
 
-<!-- SIDEBAR OVERLAY (mobile) -->
-<div class="sb-overlay" id="sb-overlay" onclick="closeSidebar()"></div>
+<header>
+  <div class="bot-avatar" id="avatarInitials">MB</div>
+  <h1 id="headerName">MahabubBot</h1>
+  <div class="bot-handle" id="headerHandle">@loading…</div>
+  <div class="status-badge"><span class="status-dot"></span>ONLINE</div>
+</header>
 
-<!-- SIDEBAR -->
-<aside class="sb">
-  <div class="sb-logo">
-    <div class="goat">🐐</div>
-    <div class="name" id="sb-botname">MAHABUB-BOT</div>
-    <div class="ver">GOATBOT v5.4 · TELEGRAM</div>
-  </div>
-  <div class="sb-bot-info">
-    <div class="avatar">🤖</div>
-    <div>
-      <div class="bname" id="sb-username">@loading...</div>
-      <div class="bid" id="sb-id">ID: —</div>
-    </div>
-  </div>
-  <div class="sb-scroll">
-    <div class="nav-grp">
-      <div class="nav-lbl">Overview</div>
-      <button class="nav-item active" onclick="nav('dashboard',this)">
-        <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
-        Dashboard
-      </button>
-      <button class="nav-item" onclick="nav('analytics',this)">
-        <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12l3-4 2.5 2.5 3-5 2.5 3"/><rect x="1" y="1" width="14" height="14" rx="1.5"/></svg>
-        Analytics
-        <span class="nbadge" id="nb-analytics">–</span>
-      </button>
-    </div>
-    <div class="nav-grp">
-      <div class="nav-lbl">Bot Tools</div>
-      <button class="nav-item" onclick="nav('downloader',this)">
-        <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="8" rx="1.5"/><path d="M6 6.5l2 2 2-2"/><path d="M8 5v3.5"/><path d="M3 13h10"/></svg>
-        Video DL
-      </button>
-      <button class="nav-item" onclick="nav('commands',this)">
-        <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4l2 2-2 2"/><path d="M8 8h5"/><rect x="1" y="1" width="14" height="14" rx="1.5"/></svg>
-        Commands
-        <span class="nbadge" id="nb-cmds">–</span>
-      </button>
-      <button class="nav-item" onclick="nav('broadcast',this)">
-        <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 8h2M13 8h2M8 1v2M8 13v2"/><circle cx="8" cy="8" r="3"/><path d="M3.5 3.5l1.5 1.5M11 11l1.5 1.5M11 3.5L9.5 5M5 11l-1.5 1.5"/></svg>
-        Broadcast
-      </button>
-    </div>
-    <div class="nav-grp">
-      <div class="nav-lbl">Users & Chats</div>
-      <button class="nav-item" onclick="nav('users',this)">
-        <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2-5 5-5"/><circle cx="12" cy="7" r="2"/><path d="M10 14c0-2 .9-3 2-3s2 1 2 3"/></svg>
-        Users
-        <span class="nbadge" id="nb-users">–</span>
-      </button>
-      <button class="nav-item" onclick="nav('chats',this)">
-        <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="10" rx="1.5"/><path d="M4 15l2-3h4l2 3"/></svg>
-        Chats / Groups
-        <span class="nbadge" id="nb-chats">–</span>
-      </button>
-      <button class="nav-item" onclick="nav('blacklist',this)">
-        <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M3.5 3.5l9 9"/></svg>
-        Blacklist
-      </button>
-    </div>
-    <div class="nav-grp">
-      <div class="nav-lbl">System</div>
-      <button class="nav-item" onclick="nav('settings',this)">
-        <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M3.2 12.8l1.4-1.4M11.4 4.6l1.4-1.4"/></svg>
-        Settings
-      </button>
-      <button class="nav-item" onclick="nav('logs',this)">
-        <svg class="ni" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1" width="12" height="14" rx="1.5"/><path d="M5 5h6M5 8h6M5 11h4"/></svg>
-        Logs
-      </button>
-    </div>
-  </div>
-  <div class="sb-footer">
-    <div class="status-row">
-      <div class="dot-live"></div>
-      <span class="status-txt">Bot online</span>
-    </div>
-    <div class="uptime-txt" id="sb-uptime">Uptime: loading...</div>
-  </div>
-</aside>
+<div class="container">
 
-<!-- MAIN -->
-<div class="main">
-  <!-- TOPBAR -->
-  <div class="topbar">
-    <div class="topbar-left">
-      <div class="mob-menu-btn" id="mob-menu-btn" onclick="openSidebar()" title="Menu">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 4h12M2 8h12M2 12h12"/></svg>
-      </div>
-      <span class="topbar-title" id="tb-title">Dashboard</span>
+  <div class="refresh-hint">
+    <span class="refresh-dot"></span>
+    auto-refresh every 10s &nbsp;·&nbsp; last update: <span id="lastUpdate">–</span>
+  </div>
+
+  <!-- ── Stat cards ── -->
+  <div class="stats-grid">
+    <div class="stat-card purple">
+      <span class="stat-icon">⏱</span>
+      <div class="stat-label">Uptime</div>
+      <div class="stat-value" id="uptime" style="font-size:16px;line-height:1.3">–</div>
     </div>
-    <div class="topbar-right">
-      <div class="tb-chip" onclick="refreshAll()" title="Refresh data">
-        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8a6 6 0 1 0 1-3"/><path d="M2 3v3h3"/></svg>
-        <span id="tb-time">–</span>
-      </div>
-      <button class="tb-btn btn-danger btn-sm" onclick="confirmRestart()" style="background:rgba(247,79,110,0.12);color:var(--red);border:1px solid rgba(247,79,110,0.2);font-size:.7rem;padding:5px 12px">⟳ Restart</button>
-      <button class="tb-btn btn-sm" onclick="navBroadcast()">📡 Broadcast</button>
+    <div class="stat-card green">
+      <span class="stat-icon">👥</span>
+      <div class="stat-label">Total Chats</div>
+      <div class="stat-value" id="countTotal">–</div>
+      <div class="stat-sub" id="countSub">groups + users</div>
+    </div>
+    <div class="stat-card blue">
+      <span class="stat-icon">🏘</span>
+      <div class="stat-label">Groups</div>
+      <div class="stat-value" id="countGroups">–</div>
+    </div>
+    <div class="stat-card amber">
+      <span class="stat-icon">🧑‍💻</span>
+      <div class="stat-label">Private</div>
+      <div class="stat-value" id="countUsers">–</div>
+    </div>
+    <div class="stat-card teal">
+      <span class="stat-icon">⚙️</span>
+      <div class="stat-label">Commands</div>
+      <div class="stat-value" id="cmdCount">–</div>
+    </div>
+    <div class="stat-card red">
+      <span class="stat-icon">🧠</span>
+      <div class="stat-label">Memory</div>
+      <div class="stat-value" id="memVal" style="font-size:18px">–</div>
+      <div class="stat-sub">MB used</div>
     </div>
   </div>
 
-  <div class="content">
-
-    <!-- ═══════════════════════════════ DASHBOARD ═══════════════════════════════ -->
-    <div class="page active" id="page-dashboard">
-      <div class="ph">
-        <div class="ph-left">
-          <h2>Overview</h2>
-          <p id="dash-sub">Live · auto-refreshes every 10s</p>
-        </div>
-        <div class="ph-actions">
-          <button class="btn btn-ghost btn-sm" onclick="refreshAll()">↻ Refresh</button>
-        </div>
-      </div>
-
-      <!-- Activity heatmap -->
-      <div class="act-wrap" id="act-bars" title="24h command activity"></div>
-
-      <!-- Stat cards -->
-      <div class="stat-grid">
-        <div class="stat-card">
-          <div class="stat-lbl">Uptime</div>
-          <div class="stat-val mono" id="s-uptime">–</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-lbl">Commands</div>
-          <div class="stat-val accent" id="s-cmds">–</div>
-          <div class="stat-sub">loaded</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-lbl">Events</div>
-          <div class="stat-val" id="s-events">–</div>
-          <div class="stat-sub">active handlers</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-lbl">Total Chats</div>
-          <div class="stat-val green" id="s-chats">–</div>
-          <div class="stat-sub" id="s-chats-sub">– groups · – users</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-lbl">Memory</div>
-          <div class="stat-val amber" id="s-mem">–</div>
-          <div class="stat-sub" id="s-mem-sub">of – MB</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-lbl">Prefix</div>
-          <div class="stat-val mono" id="s-prefix" style="font-size:2.2rem">/</div>
-          <div class="stat-sub">global prefix</div>
-        </div>
-      </div>
-
-      <!-- Recent users -->
-      <div class="sec">
-        <div class="sec-hdr">
-          <span class="sec-title">Recent Users</span>
-          <div class="sec-actions">
-            <span class="tag t-info" id="usr-count-badge">0 users</span>
-            <button class="btn btn-ghost btn-sm" onclick="nav('users', document.querySelectorAll('.nav-item')[5])">View all</button>
-          </div>
-        </div>
-        <div class="tbl-wrap">
-          <table>
-            <thead><tr><th>#</th><th>Name</th><th>Username</th><th>Type</th><th>Last Seen</th><th>Actions</th></tr></thead>
-            <tbody id="dash-users">
-              <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:28px;font-family:var(--mono);font-size:.68rem">Loading…</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Bot info row -->
-      <div class="two-col">
-        <div class="chart-card">
-          <div class="chart-hdr"><span class="chart-title">Bot Info</span></div>
-          <div style="display:grid;gap:10px">
-            <div class="set-row" style="background:var(--bg3);border-radius:8px;margin:0;padding:10px 14px;border:1px solid var(--border)">
-              <div class="set-info"><div class="set-name">Bot Name</div><div class="set-desc">Telegram display name</div></div>
-              <div class="tag t-info" id="bi-name">–</div>
-            </div>
-            <div class="set-row" style="background:var(--bg3);border-radius:8px;margin:0;padding:10px 14px;border:1px solid var(--border)">
-              <div class="set-info"><div class="set-name">Username</div><div class="set-desc">Bot handle</div></div>
-              <div class="tag t-priv" id="bi-username">–</div>
-            </div>
-            <div class="set-row" style="background:var(--bg3);border-radius:8px;margin:0;padding:10px 14px;border:1px solid var(--border)">
-              <div class="set-info"><div class="set-name">Bot ID</div><div class="set-desc">Telegram user ID</div></div>
-              <div class="tag t-cat" id="bi-id">–</div>
-            </div>
-          </div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-hdr"><span class="chart-title">System Health</span></div>
-          <div id="health-bars" style="display:grid;gap:10px"></div>
-        </div>
-      </div>
+  <!-- ── System resources ── -->
+  <div class="section">
+    <div class="section-header">
+      <span>🖥</span>
+      <h2>System Resources</h2>
     </div>
-
-    <!-- ═══════════════════════════════ ANALYTICS ═══════════════════════════════ -->
-    <div class="page" id="page-analytics">
-      <div class="ph">
-        <div class="ph-left"><h2>Analytics</h2><p>Command & event usage over time</p></div>
-        <div class="ph-actions">
-          <select class="set-inp" id="analytics-range" onchange="renderAnalytics()">
-            <option value="24">Last 24h</option>
-            <option value="7">Last 7 days</option>
-            <option value="30">Last 30 days</option>
-          </select>
-        </div>
+    <div class="section-body">
+      <div class="progress-wrap">
+        <div class="progress-label"><span>Memory Usage</span><span id="memLabel">–</span></div>
+        <div class="progress-bar"><div class="progress-fill green" id="memBar" style="width:0%"></div></div>
       </div>
-      <div class="chart-card">
-        <div class="chart-hdr">
-          <span class="chart-title">Commands per hour</span>
-          <div class="chart-legend">
-            <div class="leg-item"><div class="leg-dot" style="background:var(--accent)"></div>Commands</div>
-            <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div>Events</div>
-          </div>
-        </div>
-        <div class="bar-chart" id="an-bars"></div>
+      <div class="progress-wrap" style="margin-bottom:0">
+        <div class="progress-label"><span>Commands Loaded</span><span id="cmdLabel">–</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="cmdBar" style="width:0%"></div></div>
       </div>
-      <div class="two-col">
-        <div class="chart-card">
-          <div class="chart-hdr"><span class="chart-title">Top Commands</span></div>
-          <div id="top-cmds"></div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-hdr"><span class="chart-title">Chat Breakdown</span></div>
-          <div id="chat-breakdown"></div>
-        </div>
-      </div>
-      <div class="three-col">
-        <div class="chart-card" style="text-align:center">
-          <div class="stat-lbl" style="margin-bottom:10px">Total Messages</div>
-          <div class="stat-val accent" id="an-total-msgs">–</div>
-          <div class="stat-sub">across all chats</div>
-        </div>
-        <div class="chart-card" style="text-align:center">
-          <div class="stat-lbl" style="margin-bottom:10px">Avg / Day</div>
-          <div class="stat-val green" id="an-avg">–</div>
-          <div class="stat-sub">commands</div>
-        </div>
-        <div class="chart-card" style="text-align:center">
-          <div class="stat-lbl" style="margin-bottom:10px">Error Rate</div>
-          <div class="stat-val amber" id="an-err-rate">–</div>
-          <div class="stat-sub">% of executions</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════ VIDEO DOWNLOADER ═══════════════════════════ -->
-    <div class="page" id="page-downloader">
-      <div class="ph">
-        <div class="ph-left"><h2>Video Downloader</h2><p>Powered by mahabub-apis.fun · auto command</p></div>
-      </div>
-      <div class="dl-hero">
-        <h2>⬇️ Paste a Video Link</h2>
-        <p>Supports TikTok, YouTube, Instagram, Facebook, X/Twitter, Reddit, Vimeo &amp; more</p>
-        <div class="dl-row">
-          <input class="dl-inp" id="dl-url" type="url" placeholder="https://www.tiktok.com/@user/video/..." spellcheck="false" autocomplete="off"/>
-          <button class="dl-fetch" id="dl-btn" onclick="fetchVideo()">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v8M4 7l4 4 4-4"/><path d="M2 14h12"/></svg>
-            Fetch
-          </button>
-        </div>
-        <div class="dl-prog" id="dl-prog">
-          <div class="dl-prog-top"><span id="dl-prog-txt">Processing…</span><span id="dl-prog-pct">0%</span></div>
-          <div class="dl-prog-bar"><div class="dl-prog-fill" id="dl-prog-fill" style="width:0%"></div></div>
-        </div>
-        <div class="dl-err" id="dl-err"></div>
-      </div>
-
-      <div class="dl-result" id="dl-result">
-        <div class="dl-result-top">
-          <div class="dl-thumb" id="dl-thumb">▶</div>
-          <div class="dl-meta">
-            <div class="dl-vtitle" id="dl-title">–</div>
-            <div class="dl-vplat" id="dl-plat">–</div>
-          </div>
-        </div>
-        <div class="dl-opts" id="dl-opts"></div>
-      </div>
-
-      <!-- Supported platforms -->
-      <div class="sec">
-        <div class="sec-hdr">
-          <span class="sec-title">Supported Platforms</span>
-          <span class="tag t-ok">14 platforms</span>
-        </div>
-        <div class="plt-grid" id="plt-grid"></div>
-      </div>
-
-      <!-- Download history -->
-      <div class="sec">
-        <div class="sec-hdr">
-          <span class="sec-title">Session History</span>
-          <div class="sec-actions">
-            <span class="tag t-cat" id="dl-hist-ct">0 downloads</span>
-            <button class="btn btn-ghost btn-sm" onclick="clearHistory()">Clear</button>
-          </div>
-        </div>
-        <div class="tbl-wrap" style="padding:0 16px">
-          <div id="dl-hist"></div>
-        </div>
-      </div>
-
-      <!-- Config info -->
-      <div class="chart-card">
-        <div class="chart-hdr" style="margin-bottom:14px"><span class="chart-title">Auto DL Config (scripts/cmds/autodl.js)</span></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-          <div style="background:var(--bg3);border-radius:8px;padding:12px;border:1px solid var(--border)">
-            <div class="stat-lbl">API Base</div>
-            <div style="font-family:var(--mono);font-size:.65rem;color:var(--cyan);margin-top:4px">mahabub-apis.fun</div>
-          </div>
-          <div style="background:var(--bg3);border-radius:8px;padding:12px;border:1px solid var(--border)">
-            <div class="stat-lbl">Retries</div>
-            <div class="stat-val green" style="font-size:1.5rem">3</div>
-          </div>
-          <div style="background:var(--bg3);border-radius:8px;padding:12px;border:1px solid var(--border)">
-            <div class="stat-lbl">Cooldown</div>
-            <div class="stat-val amber" style="font-size:1.5rem">5s</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════ COMMANDS ═══════════════════════════════ -->
-    <div class="page" id="page-commands">
-      <div class="ph">
-        <div class="ph-left"><h2>Commands</h2><p>All loaded commands from scripts/cmds/</p></div>
-        <div class="ph-actions">
-          <select class="set-inp" id="cmd-filter-cat" onchange="renderCommands()">
-            <option value="">All Categories</option>
-            <option value="media">media</option>
-            <option value="admin">admin</option>
-            <option value="fun">fun</option>
-            <option value="utility">utility</option>
-            <option value="game">game</option>
-            <option value="info">info</option>
-          </select>
-          <select class="set-inp" id="cmd-filter-role" onchange="renderCommands()">
-            <option value="">All Roles</option>
-            <option value="0">Everyone (0)</option>
-            <option value="1">Admin (1)</option>
-            <option value="2">Bot Admin (2)</option>
-          </select>
-          <button class="btn btn-ghost btn-sm" onclick="refreshCmds()">↻ Reload</button>
-        </div>
-      </div>
-      <div class="cmd-grid" id="cmd-grid"></div>
-    </div>
-
-    <!-- ═══════════════════════════════ BROADCAST ═══════════════════════════════ -->
-    <div class="page" id="page-broadcast">
-      <div class="ph">
-        <div class="ph-left"><h2>Broadcast</h2><p>Send a message to all registered chats</p></div>
-      </div>
-      <div class="bc-wrap">
-        <div class="stat-lbl" style="margin-bottom:8px">Message</div>
-        <textarea class="bc-textarea" id="bc-text" placeholder="Type your announcement here… Supports Telegram Markdown (*bold*, _italic_, `code`)"></textarea>
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div>
-            <span class="tag t-warn" id="bc-target-count">– chats targeted</span>
-            <span style="font-family:var(--mono);font-size:.6rem;color:var(--muted);margin-left:10px">Role required: Bot Admin (2)</span>
-          </div>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('bc-text').value=''">Clear</button>
-            <button class="btn btn-primary" id="bc-send-btn" onclick="sendBroadcast()">
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2L2 7l5 2 2 5 5-12z"/></svg>
-              Send Broadcast
-            </button>
-          </div>
-        </div>
-        <div class="bc-result" id="bc-result"></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-hdr" style="margin-bottom:12px"><span class="chart-title">Previous Broadcasts</span></div>
-        <div id="bc-history">
-          <div style="text-align:center;padding:24px;font-family:var(--mono);font-size:.68rem;color:var(--muted)">No broadcasts sent this session</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════ USERS ═══════════════════════════════ -->
-    <div class="page" id="page-users">
-      <div class="ph">
-        <div class="ph-left"><h2>Users</h2><p>All private users from MongoDB · usersData collection</p></div>
-        <div class="ph-actions">
-          <input class="set-inp w180" id="user-search" placeholder="Search name / username…" oninput="filterUsers()">
-        </div>
-      </div>
-      <div class="tbl-wrap">
-        <table>
-          <thead><tr><th>#</th><th>Name</th><th>Username</th><th>Messages</th><th>Last Seen</th><th>Actions</th></tr></thead>
-          <tbody id="all-users-body">
-            <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:28px;font-family:var(--mono);font-size:.68rem">Loading…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════ CHATS ═══════════════════════════════ -->
-    <div class="page" id="page-chats">
-      <div class="ph">
-        <div class="ph-left"><h2>Chats &amp; Groups</h2><p>All registered threads · threadsData collection</p></div>
-        <div class="ph-actions">
-          <select class="set-inp" id="chat-filter" onchange="filterChats()">
-            <option value="">All types</option>
-            <option value="private">Private</option>
-            <option value="group">Group</option>
-            <option value="supergroup">Supergroup</option>
-          </select>
-        </div>
-      </div>
-      <div class="tbl-wrap">
-        <table>
-          <thead><tr><th>#</th><th>Name</th><th>Type</th><th>Chat ID</th><th>Prefix</th><th>Admin Only</th><th>Actions</th></tr></thead>
-          <tbody id="chats-body">
-            <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px;font-family:var(--mono);font-size:.68rem">Loading…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════ BLACKLIST ═══════════════════════════════ -->
-    <div class="page" id="page-blacklist">
-      <div class="ph">
-        <div class="ph-left"><h2>Blacklist</h2><p>Blocked users and chats (config.json · blackList)</p></div>
-      </div>
-      <div class="two-col">
-        <div class="set-sec">
-          <div class="set-sec-hdr">🚫 Blocked Users</div>
-          <div style="padding:16px">
-            <div class="bl-inp-row">
-              <input class="set-inp" style="flex:1" id="bl-user-inp" placeholder="User ID to block…" type="number">
-              <button class="btn btn-danger btn-sm" onclick="addBlacklist('user')">Block</button>
-            </div>
-            <div id="bl-user-list"></div>
-          </div>
-        </div>
-        <div class="set-sec">
-          <div class="set-sec-hdr">🚫 Blocked Chats</div>
-          <div style="padding:16px">
-            <div class="bl-inp-row">
-              <input class="set-inp" style="flex:1" id="bl-chat-inp" placeholder="Chat ID to block…">
-              <button class="btn btn-danger btn-sm" onclick="addBlacklist('chat')">Block</button>
-            </div>
-            <div id="bl-chat-list"></div>
-          </div>
-        </div>
-      </div>
-      <div class="set-sec">
-        <div class="set-sec-hdr">🔒 Whitelist Mode</div>
-        <div class="set-row">
-          <div class="set-info"><div class="set-name">Enabled</div><div class="set-desc">Only allow specific chats to use the bot</div></div>
-          <div class="toggle" id="wl-toggle" onclick="toggleWhitelist()"></div>
-        </div>
-        <div id="wl-section" style="padding:16px;border-top:1px solid var(--border)">
-          <div class="bl-inp-row">
-            <input class="set-inp" style="flex:1" id="wl-inp" placeholder="Allowed Chat ID…">
-            <button class="btn btn-green btn-sm" onclick="addWhitelist()">Allow</button>
-          </div>
-          <div id="wl-list"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════ SETTINGS ═══════════════════════════════ -->
-    <div class="page" id="page-settings">
-      <div class="ph">
-        <div class="ph-left"><h2>Settings</h2><p>Live config — changes are written to config.json via /api/config</p></div>
-        <div class="ph-actions">
-          <button class="btn btn-ghost btn-sm" onclick="loadConfig()">↻ Reload</button>
-          <button class="btn btn-primary" onclick="saveConfig()">💾 Save All</button>
-        </div>
-      </div>
-
-      <div class="set-sec">
-        <div class="set-sec-hdr">🤖 Bot General</div>
-        <div class="set-row">
-          <div class="set-info"><div class="set-name">Bot Name</div><div class="set-desc">config.botName</div></div>
-          <input class="set-inp w180" id="cfg-botName" value="MAHABUB-BOT">
-        </div>
-        <div class="set-row">
-          <div class="set-info"><div class="set-name">Global Prefix</div><div class="set-desc">config.prefix — default command trigger</div></div>
-          <input class="set-inp w80" id="cfg-prefix" value="/">
-        </div>
-        <div class="set-row">
-          <div class="set-info"><div class="set-name">Language</div><div class="set-desc">config.language</div></div>
-          <select class="set-inp w80" id="cfg-language"><option value="en">en</option><option value="bn">bn</option></select>
-        </div>
-        <div class="set-row">
-          <div class="set-info"><div class="set-name">Default Cooldown</div><div class="set-desc">config.cooldownDefault (seconds)</div></div>
-          <input class="set-inp w80" id="cfg-cooldown" type="number" min="0" max="300" value="3">
-        </div>
-      </div>
-
-      <div class="set-sec">
-        <div class="set-sec-hdr">📡 Server / Webhook</div>
-        <div class="set-row">
-          <div class="set-info"><div class="set-name">Port</div><div class="set-desc">config.port — Express HTTP port</div></div>
-          <input class="set-inp w80" id="cfg-port" type="number" value="3000">
-        </div>
-        <div class="set-row">
-          <div class="set-info"><div class="set-name">Use Webhook</div><div class="set-desc">config.useWebhook — polling vs webhook mode</div></div>
-          <div class="toggle" id="tgl-webhook" onclick="this.classList.toggle('on')"></div>
-        </div>
-        <div class="set-row">
-          <div class="set-info"><div class="set-name">Webhook URL</div><div class="set-desc">config.webhookUrl</div></div>
-          <input class="set-inp w180" id="cfg-webhookUrl" placeholder="https://yourbot.onrender.com">
-        </div>
-      </div>
-
-      <div class="set-sec">
-        <div class="set-sec-hdr">🔑 API &amp; Database</div>
-        <div class="set-row">
-          <div class="set-info"><div class="set-name">API Base URL</div><div class="set-desc">config.api — used by autodl &amp; other commands</div></div>
-          <input class="set-inp w180" id="cfg-api" value="https://mahabub-apis.fun">
-        </div>
-        <div class="set-row">
-          <div class="set-info"><div class="set-name">MongoDB URI</div><div class="set-desc">config.mongoUri</div></div>
-          <input class="set-inp w180" id="cfg-mongoUri" type="password" placeholder="mongodb+srv://…">
-        </div>
-        <div class="set-row">
-          <div class="set-info"><div class="set-name">DB Name</div><div class="set-desc">config.dbName</div></div>
-          <input class="set-inp w180" id="cfg-dbName" value="TeleBot">
-        </div>
-      </div>
-
-      <div class="set-sec">
-        <div class="set-sec-hdr">👑 Admin Bot IDs</div>
-        <div style="padding:16px">
-          <div class="bl-inp-row">
-            <input class="set-inp" style="flex:1" id="admin-inp" placeholder="Telegram User ID…" type="number">
-            <button class="btn btn-primary btn-sm" onclick="addAdmin()">Add</button>
-          </div>
-          <div id="admin-list"></div>
-        </div>
-      </div>
-
-      <div class="set-sec">
-        <div class="set-sec-hdr">⬇️ Auto Video Downloader</div>
-        <div class="set-row">
-          <div class="set-info"><div class="set-name">HD Priority</div><div class="set-desc">Prefer HD over SD when both available</div></div>
-          <div class="toggle on" id="tgl-hd" onclick="this.classList.toggle('on')"></div>
-        </div>
-        <div class="set-row">
-          <div class="set-info"><div class="set-name">Auto-delete temp files</div><div class="set-desc">Remove /tmp/video_*.mp4 after send</div></div>
-          <div class="toggle on" id="tgl-autodel" onclick="this.classList.toggle('on')"></div>
-        </div>
-        <div class="set-row">
-          <div class="set-info"><div class="set-name">DL Retries</div><div class="set-desc">Max retry attempts on failure</div></div>
-          <input class="set-inp w80" id="cfg-dlretries" type="number" min="1" max="10" value="3">
-        </div>
-        <div class="set-row">
-          <div class="set-info"><div class="set-name">DL Cooldown</div><div class="set-desc">Seconds between downloads (countDown)</div></div>
-          <input class="set-inp w80" id="cfg-dlcooldown" type="number" min="0" max="60" value="5">
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════ LOGS ═══════════════════════════════ -->
-    <div class="page" id="page-logs">
-      <div class="ph">
-        <div class="ph-left"><h2>System Logs</h2><p>Live log stream · logger/log.js</p></div>
-        <div class="ph-actions">
-          <select class="set-inp w80" id="log-filter" onchange="renderLogs()">
-            <option value="">All</option>
-            <option value="INFO">INFO</option>
-            <option value="OK">OK</option>
-            <option value="WARN">WARN</option>
-            <option value="ERROR">ERROR</option>
-            <option value="CMD">CMD</option>
-          </select>
-          <button class="btn btn-ghost btn-sm" onclick="clearLogs()">Clear</button>
-          <button class="btn btn-ghost btn-sm" onclick="logScrollBottom()">⬇ Bottom</button>
-        </div>
-      </div>
-      <div class="log-wrap" id="log-out"></div>
-    </div>
-
-  </div><!-- /content -->
-</div><!-- /main -->
-
-<!-- MODAL -->
-<div class="modal-overlay" id="modal">
-  <div class="modal">
-    <h3 id="modal-title">Confirm Action</h3>
-    <p id="modal-msg">Are you sure?</p>
-    <div class="modal-actions">
-      <button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-danger" id="modal-confirm">Confirm</button>
     </div>
   </div>
+
+  <!-- ── Bot information ── -->
+  <div class="section">
+    <div class="section-header">
+      <span>🤖</span>
+      <h2>Bot Information</h2>
+    </div>
+    <div class="section-body">
+      <div class="info-row">
+        <span class="info-key">Bot Name</span>
+        <span class="info-val" id="infoName">MahabubBot</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Username</span>
+        <span class="info-val" id="infoUsername">–</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Bot ID</span>
+        <span class="info-val" id="infoBotId">–</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Admin ID</span>
+        <span class="info-val" id="infoAdmin">–</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Prefix</span>
+        <span class="info-val" id="infoPrefix">–</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Language</span>
+        <span class="info-val" id="infoLang">–</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Database</span>
+        <span class="info-val" id="infoDb">–</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Webhook</span>
+        <span class="info-val" id="infoWebhook">–</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Cooldown</span>
+        <span class="info-val" id="infoCooldown">–</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Commands / Events</span>
+        <span class="info-val" id="infoCmds">–</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Owner</span>
+        <span class="info-val"><a href="https://t.me/MAHABUB_RAHMAN777" target="_blank">@MAHABUB_RAHMAN777</a></span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Uptime</span>
+        <span class="info-val" id="infoUptime">–</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Recent users ── -->
+  <div class="section">
+    <div class="section-header">
+      <span>👤</span>
+      <h2>Recent Users</h2>
+      <span style="font-size:12px;color:var(--muted)">last 50 interactions</span>
+    </div>
+    <div class="section-body">
+      <div class="users-list" id="usersList">
+        <div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Active Chats ── -->
+  <div class="section">
+    <div class="section-header">
+      <span>💬</span>
+      <h2>Active Chats</h2>
+      <span style="font-size:12px;color:var(--muted)">up to 100 chats</span>
+    </div>
+    <div class="section-body">
+      <div class="chats-list" id="chatsList">
+        <div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">Loading…</div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
-<!-- TOAST -->
-<div class="toast" id="toast"></div>
+<footer>
+  <p>Powered by <a href="https://t.me/MAHABUB_RAHMAN777">MR﹅ MAHABUB﹅ メꪜ</a> &nbsp;·&nbsp; MahabubBot Dashboard</p>
+</footer>
 
 <script>
-// ─── GLOBAL STATE ─────────────────────────────────────────────────────────────
-let _statsCache   = null;
-let _dlHistory    = [];
-let _bcHistory    = [];
-let _blacklistUsers = [];
-let _blacklistChats = [];
-let _whitelistChats = [];
-let _whitelistEnabled = false;
-let _adminIds     = ['7406650400'];
-let _allUsers     = [];
-let _allChats     = [];
-let _logs         = [];
-let _logTimer     = null;
-
-// ─── MOBILE SIDEBAR ───────────────────────────────────────────────────────────
-function openSidebar() {
-  document.querySelector('.sb').classList.add('open');
-  document.getElementById('sb-overlay').classList.add('show');
-  document.body.style.overflow='hidden';
-}
-function closeSidebar() {
-  document.querySelector('.sb').classList.remove('open');
-  document.getElementById('sb-overlay').classList.remove('show');
-  document.body.style.overflow='';
+function timeAgo(ts) {
+  if (!ts) return '—';
+  const diff = Date.now() - new Date(ts).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1)  return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
 }
 
-// ─── NAV HELPERS ──────────────────────────────────────────────────────────────
-function navBroadcast() {
-  const btn = [...document.querySelectorAll('.nav-item')].find(b=>b.textContent.trim().startsWith('Broadcast'));
-  nav('broadcast', btn);
-  closeSidebar();
+function initials(name) {
+  if (!name) return '?';
+  return name.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
 }
 
-// ─── NAVIGATION ───────────────────────────────────────────────────────────────
-const PAGE_TITLES = {dashboard:'Dashboard',analytics:'Analytics',downloader:'Video Downloader',
-  commands:'Commands',broadcast:'Broadcast',users:'Users',chats:'Chats & Groups',
-  blacklist:'Blacklist',settings:'Settings',logs:'System Logs'};
-
-function nav(name, btn) {
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  document.getElementById('page-'+name)?.classList.add('active');
-  if(btn) btn.classList.add('active');
-  document.getElementById('tb-title').textContent = PAGE_TITLES[name]||name;
-  if(name==='analytics') renderAnalytics();
-  if(name==='commands') renderCommands();
-  if(name==='logs') { renderLogs(); logScrollBottom(); }
-  if(name==='blacklist') renderBlacklist();
-  if(name==='settings') loadConfig();
-  if(name==='broadcast') document.getElementById('bc-target-count').textContent = `${(_statsCache?.counts?.total||0)} chats targeted`;
-  // Close mobile sidebar on navigation
-  closeSidebar();
+const avatarColors = ['#7c3aed','#0d9488','#b45309','#1d4ed8','#be185d','#15803d','#9333ea','#0891b2'];
+function avatarColor(id) {
+  return avatarColors[Math.abs(Number(String(id).replace(/\D/g,'') || 0)) % avatarColors.length];
 }
 
-// ─── TOAST ────────────────────────────────────────────────────────────────────
-function toast(msg, type='info') {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = `toast show ${type}`;
-  setTimeout(()=>el.classList.remove('show'), 2800);
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ─── MODAL ────────────────────────────────────────────────────────────────────
-function showModal(title, msg, onConfirm, danger=true) {
-  document.getElementById('modal-title').textContent = title;
-  document.getElementById('modal-msg').textContent   = msg;
-  const btn = document.getElementById('modal-confirm');
-  btn.className = `btn ${danger?'btn-danger':'btn-primary'}`;
-  btn.onclick = () => { closeModal(); onConfirm(); };
-  document.getElementById('modal').classList.add('show');
-}
-function closeModal() { document.getElementById('modal').classList.remove('show'); }
-
-// ─── TIME HELPERS ─────────────────────────────────────────────────────────────
-function relTime(ts) {
-  if(!ts) return '—';
-  const d = Date.now() - (ts instanceof Date ? ts.getTime() : new Date(ts).getTime());
-  if(isNaN(d)||d<0) return 'just now';
-  if(d<60000)  return 'just now';
-  if(d<3600000) return Math.floor(d/60000)+'m ago';
-  if(d<86400000) return Math.floor(d/3600000)+'h ago';
-  return Math.floor(d/86400000)+'d ago';
+function chatTypeLabel(type) {
+  if (!type || type === 'private') return '<span class="tag private">Private</span>';
+  if (type === 'group')            return '<span class="tag group">Group</span>';
+  return `<span class="tag super">${escHtml(type)}</span>`;
 }
 
-function updateClock() {
-  document.getElementById('tb-time').textContent = '↻ '+new Date().toLocaleTimeString();
-}
-
-// ─── API FETCH ────────────────────────────────────────────────────────────────
-async function apiFetch(url, opts={}) {
+async function fetchStats() {
   try {
-    const r = await fetch(url, opts);
-    return await r.json();
-  } catch(e) {
-    console.error(url, e.message);
-    return null;
-  }
-}
+    const res  = await fetch('/api/stats');
+    const data = await res.json();
+    if (!data.ok) return;
 
-// ─── REFRESH MAIN STATS ───────────────────────────────────────────────────────
-async function refreshAll() {
-  const d = await apiFetch('/api/stats');
-  if(!d?.ok) return;
-  _statsCache = d;
+    // ── Header ──────────────────────────────────────────
+    // GoatBot.js returns: data.bot.first_name (not firstName)
+    const botFirstName = data.bot?.first_name || data.config?.botName || 'MahabubBot';
+    const botUsername  = data.bot?.username   || '';
+    const botId        = data.bot?.id         || '';
 
-  // Sidebar
-  document.getElementById('sb-botname').textContent  = d.bot?.first_name || 'GoatBot';
-  document.getElementById('sb-username').textContent = '@'+(d.bot?.username||'?');
-  document.getElementById('sb-id').textContent       = 'ID: '+(d.bot?.id||'?');
-  document.getElementById('sb-uptime').textContent   = 'Uptime: '+(d.uptime||'–');
+    document.getElementById('headerName').textContent   = botFirstName;
+    document.getElementById('headerHandle').textContent = botUsername ? `@${botUsername}` : '';
+    document.getElementById('avatarInitials').textContent = initials(botFirstName);
 
-  // Dashboard cards
-  document.getElementById('s-uptime').textContent    = d.uptime||'–';
-  document.getElementById('s-cmds').textContent      = d.commands??'–';
-  document.getElementById('s-events').textContent    = d.events??'–';
-  document.getElementById('s-chats').textContent     = d.counts?.total??'–';
-  document.getElementById('s-chats-sub').textContent = `${d.counts?.groups??0} groups · ${d.counts?.users??0} users`;
-  document.getElementById('s-mem').textContent       = (d.memory?.used??'–')+'MB';
-  document.getElementById('s-mem-sub').textContent   = `of ${d.memory?.total??'?'} MB`;
-  document.getElementById('s-prefix').textContent    = d.config?.prefix || '/';
+    // ── Stat cards ──────────────────────────────────────
+    document.getElementById('uptime').textContent       = data.uptime || '–';
+    document.getElementById('countTotal').textContent   = data.counts?.total  ?? '–';
+    document.getElementById('countGroups').textContent  = data.counts?.groups ?? '–';
+    document.getElementById('countUsers').textContent   = data.counts?.users  ?? '–';
+    document.getElementById('countSub').textContent     = `${data.counts?.groups ?? 0} groups · ${data.counts?.users ?? 0} private`;
+    document.getElementById('cmdCount').textContent     = data.commands ?? '–';
+    document.getElementById('memVal').textContent       = data.memory?.used ?? '–';
 
-  // Topbar badges
-  document.getElementById('nb-cmds').textContent    = d.commands??'–';
-  document.getElementById('nb-analytics').textContent = d.events??'–';
-  document.getElementById('nb-users').textContent   = d.counts?.users??'–';
-  document.getElementById('nb-chats').textContent   = d.counts?.total??'–';
-  document.getElementById('usr-count-badge').textContent = `${d.users?.length||0} users`;
+    // ── System bars ──────────────────────────────────────
+    const memUsed  = data.memory?.used  || 0;
+    const memTotal = data.memory?.total || 1;
+    const memPct   = Math.round((memUsed / memTotal) * 100);
+    document.getElementById('memLabel').textContent = `${memUsed} MB / ${memTotal} MB (${memPct}%)`;
+    document.getElementById('memBar').style.width   = `${Math.min(memPct, 100)}%`;
 
-  // Bot info panel
-  document.getElementById('bi-name').textContent    = d.bot?.first_name||'–';
-  document.getElementById('bi-username').textContent= '@'+(d.bot?.username||'?');
-  document.getElementById('bi-id').textContent      = d.bot?.id||'–';
+    const maxCmds = 60; // visual ceiling for progress bar
+    const cmds    = data.commands || 0;
+    document.getElementById('cmdLabel').textContent = `${cmds} commands · ${data.events || 0} events`;
+    document.getElementById('cmdBar').style.width   = `${Math.min((cmds / maxCmds) * 100, 100)}%`;
 
-  // Health bars
-  const memPct = Math.round(((d.memory?.used||0)/(d.memory?.total||1))*100);
-  document.getElementById('health-bars').innerHTML = [
-    {label:'Memory',pct:memPct,val:`${d.memory?.used||0}/${d.memory?.total||0}MB`,color:'var(--accent)'},
-    {label:'Commands Loaded',pct:Math.min(100,Math.round(((d.commands||0)/70)*100)),val:`${d.commands||0}/70`,color:'var(--green)'},
-    {label:'Events Active',pct:Math.min(100,Math.round(((d.events||0)/10)*100)),val:`${d.events||0}/10`,color:'var(--amber)'},
-  ].map(h=>`
-    <div>
-      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:.6rem;color:var(--muted);margin-bottom:5px">
-        <span>${h.label}</span><span>${h.val}</span>
-      </div>
-      <div style="height:5px;background:var(--card2);border-radius:99px;overflow:hidden">
-        <div style="height:100%;width:${h.pct}%;background:${h.color};border-radius:99px;transition:width .5s ease"></div>
-      </div>
-    </div>`).join('');
+    // ── Bot information ──────────────────────────────────
+    const cfg = data.config || {};
+    document.getElementById('infoName').textContent     = botFirstName;
+    document.getElementById('infoUsername').textContent = botUsername ? `@${botUsername}` : '–';
+    document.getElementById('infoBotId').textContent    = botId || '–';
+    document.getElementById('infoAdmin').textContent    = (cfg.adminBot || []).join(', ') || '–';
+    document.getElementById('infoPrefix').textContent   = cfg.prefix   || '–';
+    document.getElementById('infoLang').textContent     = cfg.language  || '–';
+    document.getElementById('infoDb').textContent       = cfg.dbName    || '–';
+    document.getElementById('infoWebhook').textContent  = cfg.useWebhook ? (cfg.webhookUrl || 'enabled') : 'polling';
+    document.getElementById('infoCooldown').textContent = cfg.cooldownDefault != null ? `${cfg.cooldownDefault}s` : '–';
+    document.getElementById('infoCmds').textContent     = `${data.commands ?? 0} / ${data.events ?? 0}`;
+    document.getElementById('infoUptime').textContent   = data.uptime || '–';
 
-  // Users table
-  _allUsers = d.users||[];
-  _allChats = (d.users||[]).map(u=>({...u,type:'private',title:u.name}));
-  renderUsersTable(d.users);
-  renderAllUsersTable(d.users);
-
-  // Broadcast count
-  document.getElementById('bc-target-count').textContent = `${d.counts?.total||0} chats targeted`;
-
-  addLog('INFO','REFRESH','Stats refreshed from /api/stats');
-}
-
-// ─── USERS TABLE ──────────────────────────────────────────────────────────────
-function renderUsersTable(users) {
-  const tbody = document.getElementById('dash-users');
-  if(!users?.length){
-    tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:28px;font-family:var(--mono);font-size:.68rem">No users yet</td></tr>';
-    return;
-  }
-  tbody.innerHTML = users.slice(0,15).map((u,i)=>`
-    <tr>
-      <td><span class="tag t-num">${i+1}</span></td>
-      <td style="font-weight:700">${escH(u.name||'—')}</td>
-      <td style="color:var(--muted);font-family:var(--mono);font-size:.7rem">${u.username?'@'+escH(u.username):'—'}</td>
-      <td><span class="tag t-priv">private</span></td>
-      <td style="color:var(--muted);font-family:var(--mono);font-size:.62rem">${relTime(u.lastSeen)}</td>
-      <td>
-        <button class="btn btn-ghost btn-sm" onclick="toast('User ${escH(u.name||u.id||'?')} info: ID '+( '${u.id||'?'}' ),'info')" style="font-size:.58rem;padding:3px 8px">Info</button>
-        <button class="btn btn-danger btn-sm" onclick="blockUser('${u.id||''}')" style="font-size:.58rem;padding:3px 8px;margin-left:4px">Block</button>
-      </td>
-    </tr>`).join('');
-}
-
-function renderAllUsersTable(users) {
-  const tbody = document.getElementById('all-users-body');
-  if(!users?.length){
-    tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:28px;font-family:var(--mono);font-size:.68rem">No users yet</td></tr>';
-    return;
-  }
-  tbody.innerHTML = users.map((u,i)=>`
-    <tr>
-      <td><span class="tag t-num">${i+1}</span></td>
-      <td style="font-weight:700">${escH(u.name||'—')}</td>
-      <td style="color:var(--muted);font-family:var(--mono);font-size:.7rem">${u.username?'@'+escH(u.username):'—'}</td>
-      <td style="font-family:var(--mono);font-size:.7rem">${u.messageCount||0}</td>
-      <td style="color:var(--muted);font-family:var(--mono);font-size:.62rem">${relTime(u.lastSeen)}</td>
-      <td>
-        <button class="btn btn-ghost btn-sm" style="font-size:.58rem;padding:3px 8px" onclick="toast('ID: ${u.id||'?'}','info')">Info</button>
-        <button class="btn btn-danger btn-sm" style="font-size:.58rem;padding:3px 8px;margin-left:4px" onclick="blockUser('${u.id||''}')">Block</button>
-      </td>
-    </tr>`).join('');
-}
-
-function filterUsers() {
-  const q = document.getElementById('user-search').value.toLowerCase();
-  const filtered = _allUsers.filter(u=>(u.name||'').toLowerCase().includes(q)||(u.username||'').toLowerCase().includes(q));
-  renderAllUsersTable(filtered);
-}
-
-function blockUser(id) {
-  if(!id) return;
-  showModal('Block User','Block user ID '+id+'? They will no longer be able to use the bot.',()=>{
-    if(!_blacklistUsers.includes(id)) _blacklistUsers.push(id);
-    renderBlacklist();
-    toast('User '+id+' blocked','ok');
-    addLog('WARN','BLACKLIST','Blocked user: '+id);
-  });
-}
-
-// ─── CHATS TABLE ──────────────────────────────────────────────────────────────
-function renderChatsTable(chats) {
-  const tbody = document.getElementById('chats-body');
-  if(!chats?.length){
-    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px;font-family:var(--mono);font-size:.68rem">No chats yet</td></tr>';
-    return;
-  }
-  tbody.innerHTML = chats.map((c,i)=>`
-    <tr>
-      <td><span class="tag t-num">${i+1}</span></td>
-      <td style="font-weight:600">${escH(c.title||c.name||'—')}</td>
-      <td><span class="tag ${c.type==='private'?'t-priv':'t-group'}">${c.type||'?'}</span></td>
-      <td style="font-family:var(--mono);font-size:.65rem;color:var(--muted)">${c.id||'–'}</td>
-      <td style="font-family:var(--mono);font-size:.7rem">${c.prefix||_statsCache?.config?.prefix||'/'}</td>
-      <td><span class="tag ${c.adminOnly?'t-warn':'t-cat'}">${c.adminOnly?'ON':'OFF'}</span></td>
-      <td>
-        <button class="btn btn-ghost btn-sm" style="font-size:.58rem;padding:3px 8px" onclick="toast('Chat ID: ${c.id}','info')">Info</button>
-        <button class="btn btn-danger btn-sm" style="font-size:.58rem;padding:3px 8px;margin-left:4px" onclick="blockChat('${c.id}')">Block</button>
-      </td>
-    </tr>`).join('');
-}
-
-function filterChats() {
-  const v = document.getElementById('chat-filter').value;
-  const filtered = v ? _allChats.filter(c=>c.type===v) : _allChats;
-  renderChatsTable(filtered);
-}
-
-function blockChat(id) {
-  showModal('Block Chat','Block chat '+id+'?',()=>{
-    if(!_blacklistChats.includes(id)) _blacklistChats.push(id);
-    renderBlacklist();
-    toast('Chat '+id+' blocked','ok');
-    addLog('WARN','BLACKLIST','Blocked chat: '+id);
-  });
-}
-
-// ─── ACTIVITY BARS ────────────────────────────────────────────────────────────
-function renderActivityBars() {
-  const c = document.getElementById('act-bars');
-  const vals = Array.from({length:24},()=>Math.random());
-  const hrs = ['12a','1','2','3','4','5','6','7','8','9','10','11','12p','1','2','3','4','5','6','7','8','9','10','11'];
-  c.innerHTML = vals.map((v,i)=>`
-    <div class="act-bar" title="${hrs[i]}: ${Math.round(v*140)} cmds">
-      <div class="act-fill" style="height:${Math.max(8,v*100)}%"></div>
-    </div>`).join('');
-}
-
-// ─── ANALYTICS ────────────────────────────────────────────────────────────────
-function renderAnalytics() {
-  const range = parseInt(document.getElementById('analytics-range')?.value||'24');
-  const n = range === 24 ? 24 : range;
-  const data = Array.from({length:n},()=>Math.floor(Math.random()*90+10));
-  const evts = data.map(v=>Math.floor(v*0.4));
-  const max  = Math.max(...data);
-  const hrs  = ['12a','','','3','','','6','','','9','','','12p','','','3','','','6','','','9','',''];
-
-  document.getElementById('an-bars').innerHTML = data.map((v,i)=>`
-    <div class="bar-col" title="${v} commands">
-      <div class="bar-fill" style="height:${(v/max)*76}px;background:var(--accent);opacity:.7" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7"></div>
-      <span class="bar-lbl">${range===24?(hrs[i]||''):(i%4===0?'D'+(i+1):'')}</span>
-    </div>`).join('');
-
-  const topCmds = [
-    {n:'dl/download',c:342,p:88},{n:'help',c:201,p:52},{n:'video',c:156,p:40},
-    {n:'bot/sim',c:98,p:25},{n:'info',c:74,p:19},{n:'rank',c:45,p:12}
-  ];
-  document.getElementById('top-cmds').innerHTML = topCmds.map(c=>`
-    <div class="cmd-rank-row">
-      <span class="cmd-rank-name">${c.n}</span>
-      <div class="cmd-rank-bar-wrap"><div class="cmd-rank-bar-fill" style="width:${c.p}%"></div></div>
-      <span class="cmd-rank-count">${c.c}</span>
-    </div>`).join('');
-
-  const total = _statsCache?.counts?.total||0;
-  const grps  = _statsCache?.counts?.groups||0;
-  const usrs  = _statsCache?.counts?.users||0;
-  document.getElementById('chat-breakdown').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      ${[
-        {l:'Groups',v:grps,cl:'var(--green)'},
-        {l:'Private',v:usrs,cl:'var(--accent)'},
-        {l:'Active Today',v:Math.floor(total*.4),cl:'var(--amber)'},
-        {l:'Inactive',v:Math.floor(total*.6),cl:'var(--muted)'}
-      ].map(x=>`
-        <div style="background:var(--bg3);border-radius:8px;padding:10px;border:1px solid var(--border)">
-          <div class="stat-lbl">${x.l}</div>
-          <div style="font-size:1.4rem;font-weight:800;color:${x.cl};letter-spacing:-.03em">${x.v}</div>
-        </div>`).join('')}
-    </div>`;
-
-  const totalMsgs = data.reduce((a,b)=>a+b,0);
-  document.getElementById('an-total-msgs').textContent = totalMsgs.toLocaleString();
-  document.getElementById('an-avg').textContent = Math.round(totalMsgs/Math.max(1,n));
-  document.getElementById('an-err-rate').textContent = (Math.random()*3).toFixed(1)+'%';
-}
-
-// ─── COMMANDS ─────────────────────────────────────────────────────────────────
-const COMMANDS_META = [
-  {name:'auto',aliases:['dl','download'],cat:'media',role:0,cd:5,prefix:false,desc:'Auto video downloader — just send any https link',author:'MAHABUB'},
-  {name:'video',aliases:['yt','ytdl'],cat:'media',role:0,cd:10,prefix:true,desc:'Download YouTube videos by name or URL',author:'MAHABUB'},
-  {name:'help',aliases:['h','cmds'],cat:'info',role:0,cd:3,prefix:true,desc:'Show all available commands',author:'System'},
-  {name:'info',aliases:['botinfo'],cat:'info',role:0,cd:5,prefix:true,desc:'Display bot information and stats',author:'System'},
-  {name:'uid',aliases:['id','myid'],cat:'info',role:0,cd:3,prefix:true,desc:'Get your Telegram user ID',author:'System'},
-  {name:'uptime',aliases:['up'],cat:'info',role:0,cd:5,prefix:true,desc:'Show bot uptime',author:'System'},
-  {name:'bot',aliases:['sim','chat'],cat:'fun',role:0,cd:3,prefix:false,desc:'Chat with Simsimi AI',author:'MAHABUB'},
-  {name:'8ball',aliases:[],cat:'fun',role:0,cd:3,prefix:true,desc:'Ask the magic 8-ball anything',author:'System'},
-  {name:'toss',aliases:['coin','flip'],cat:'fun',role:0,cd:3,prefix:true,desc:'Flip a coin',author:'System'},
-  {name:'rps',aliases:['rockpaper'],cat:'game',role:0,cd:3,prefix:true,desc:'Play Rock Paper Scissors',author:'System'},
-  {name:'guessnumber',aliases:['guess'],cat:'game',role:0,cd:5,prefix:true,desc:'Number guessing game',author:'System'},
-  {name:'calc',aliases:['math'],cat:'utility',role:0,cd:2,prefix:true,desc:'Calculate mathematical expressions',author:'System'},
-  {name:'translate',aliases:['tr'],cat:'utility',role:0,cd:5,prefix:true,desc:'Translate text to any language',author:'System'},
-  {name:'quote',aliases:['q'],cat:'utility',role:0,cd:3,prefix:true,desc:'Get a random inspirational quote',author:'System'},
-  {name:'weather',aliases:['w','wthr'],cat:'utility',role:0,cd:5,prefix:true,desc:'Get weather for a location',author:'System'},
-  {name:'remind',aliases:['reminder'],cat:'utility',role:0,cd:5,prefix:true,desc:'Set a reminder',author:'System'},
-  {name:'prefix',aliases:['setprefix'],cat:'admin',role:1,cd:5,prefix:true,desc:'Set the bot prefix for this chat',author:'System'},
-  {name:'kick',aliases:['remove'],cat:'admin',role:1,cd:5,prefix:true,desc:'Kick a user from the group',author:'System'},
-  {name:'mute',aliases:['unmute'],cat:'admin',role:1,cd:5,prefix:true,desc:'Mute/unmute a user in the group',author:'System'},
-  {name:'warn',aliases:['warning','unwarn'],cat:'admin',role:1,cd:5,prefix:true,desc:'Warn a user — auto-kicks at 3 warnings',author:'System'},
-  {name:'ban',aliases:['unban'],cat:'admin',role:1,cd:5,prefix:true,desc:'Ban a user from the chat',author:'System'},
-  {name:'antispam',aliases:[],cat:'admin',role:1,cd:5,prefix:true,desc:'Anti-spam protection settings',author:'System'},
-  {name:'badwords',aliases:['filter'],cat:'admin',role:1,cd:5,prefix:true,desc:'Manage bad words filter',author:'System'},
-  {name:'setwelcome',aliases:['welcome'],cat:'admin',role:1,cd:5,prefix:true,desc:'Set welcome message for new members',author:'System'},
-  {name:'tag',aliases:['tagall'],cat:'admin',role:1,cd:10,prefix:true,desc:'Tag all members in the group',author:'System'},
-  {name:'pin',aliases:['unpin'],cat:'admin',role:1,cd:5,prefix:true,desc:'Pin or unpin a message',author:'System'},
-  {name:'rule',aliases:['rules'],cat:'admin',role:1,cd:5,prefix:true,desc:'Set or show group rules',author:'System'},
-  {name:'poll',aliases:['vote'],cat:'admin',role:1,cd:5,prefix:true,desc:'Create a poll',author:'System'},
-  {name:'approve',aliases:['unapprove'],cat:'admin',role:1,cd:5,prefix:true,desc:'Approve join requests',author:'System'},
-  {name:'thread',aliases:['chat'],cat:'admin',role:1,cd:5,prefix:true,desc:'Manage thread/chat settings',author:'System'},
-  {name:'broadcast',aliases:['bc','announce'],cat:'admin',role:2,cd:10,prefix:true,desc:'Broadcast message to all chats',author:'System'},
-  {name:'reload',aliases:['rl'],cat:'admin',role:2,cd:10,prefix:true,desc:'Reload all commands',author:'System'},
-  {name:'restart',aliases:[],cat:'admin',role:2,cd:10,prefix:true,desc:'Restart the bot process',author:'System'},
-  {name:'admin',aliases:[],cat:'admin',role:2,cd:5,prefix:true,desc:'Manage bot admins',author:'System'},
-  {name:'adminonly',aliases:[],cat:'admin',role:1,cd:5,prefix:true,desc:'Toggle admin-only mode for the chat',author:'System'},
-  {name:'cmd',aliases:[],cat:'admin',role:1,cd:5,prefix:true,desc:'Enable or disable commands per chat',author:'System'},
-  {name:'rank',aliases:['level'],cat:'utility',role:0,cd:10,prefix:true,desc:'Check your message rank in the chat',author:'System'},
-  {name:'money',aliases:['bal','wallet'],cat:'utility',role:0,cd:5,prefix:true,desc:'Check your virtual wallet balance',author:'System'},
-  {name:'ig',aliases:['instagram'],cat:'media',role:0,cd:10,prefix:true,desc:'Download Instagram media',author:'MAHABUB'},
-  {name:'ephoto',aliases:['ep'],cat:'media',role:0,cd:10,prefix:true,desc:'Create stylized text on photos',author:'MAHABUB'},
-  {name:'xnx',aliases:[],cat:'media',role:0,cd:5,prefix:true,desc:'Media utility command',author:'MAHABUB'},
-  {name:'say',aliases:['tts'],cat:'fun',role:0,cd:3,prefix:true,desc:'Text to speech',author:'System'},
-  {name:'newTeach',aliases:['teach'],cat:'utility',role:1,cd:5,prefix:true,desc:'Teach the bot new responses',author:'System'},
-  {name:'user',aliases:['profile'],cat:'info',role:0,cd:5,prefix:true,desc:'Get user profile information',author:'System'},
-];
-
-let _cmdEnabled = {}; // cmd name → bool
-
-function renderCommands() {
-  const catFilter  = document.getElementById('cmd-filter-cat')?.value||'';
-  const roleFilter = document.getElementById('cmd-filter-role')?.value;
-  let list = [...COMMANDS_META];
-  if(catFilter)  list = list.filter(c=>c.cat===catFilter);
-  if(roleFilter!==undefined && roleFilter!=='') list = list.filter(c=>String(c.role)===roleFilter);
-  const roleLabel = ['Everyone','Group Admin','Bot Admin','Operator'];
-  const roleClass = ['t-ok','t-warn','t-err','t-err'];
-  document.getElementById('cmd-grid').innerHTML = list.map(c=>{
-    const en = _cmdEnabled[c.name]!==false;
-    return `<div class="cmd-card" id="cmd-card-${c.name}" style="${en?'':'opacity:.5'}">
-      <div class="cmd-top">
-        <span class="cmd-name">${c.name}</span>
-        <span class="tag ${roleClass[c.role]}" style="font-size:.55rem">${roleLabel[c.role]}</span>
-      </div>
-      <div class="cmd-desc">${c.desc}</div>
-      <div class="cmd-meta">
-        <span class="tag t-cat">${c.cat}</span>
-        ${c.prefix?'<span class="tag t-info" style="font-size:.52rem">prefix</span>':'<span class="tag t-warn" style="font-size:.52rem">no-prefix</span>'}
-        <span class="tag t-cat">⏱ ${c.cd}s</span>
-        ${c.aliases.length?`<span class="tag t-cat" style="font-size:.52rem">+${c.aliases.length} alias</span>`:''}
-      </div>
-      <div class="cmd-toggle">
-        <span class="cmd-toggle-label">Enabled in this chat</span>
-        <div class="toggle ${en?'on':''}" onclick="toggleCmd('${c.name}',this)"></div>
-      </div>
-    </div>`;}).join('');
-}
-
-function toggleCmd(name, el) {
-  el.classList.toggle('on');
-  const en = el.classList.contains('on');
-  _cmdEnabled[name] = en;
-  const card = document.getElementById('cmd-card-'+name);
-  if(card) card.style.opacity = en?'1':'0.5';
-  toast(`${name} ${en?'enabled':'disabled'} in this chat`, en?'ok':'info');
-  addLog(en?'OK':'WARN','CMD',`Command ${name} ${en?'enabled':'disabled'}`);
-}
-
-function refreshCmds() {
-  toast('Commands reloaded (local mock)','ok');
-  addLog('OK','LOADER',`Reloaded ${COMMANDS_META.length} commands`);
-  renderCommands();
-}
-
-// ─── VIDEO DOWNLOADER ─────────────────────────────────────────────────────────
-const PLATFORMS = [
-  {icon:'📱',name:'TikTok',st:'active'},{icon:'▶️',name:'YouTube',st:'active'},
-  {icon:'📸',name:'Instagram',st:'active'},{icon:'📘',name:'Facebook',st:'active'},
-  {icon:'🐦',name:'X/Twitter',st:'active'},{icon:'🎵',name:'SoundCloud',st:'active'},
-  {icon:'🎬',name:'Vimeo',st:'active'},{icon:'🤖',name:'Reddit',st:'active'},
-  {icon:'📺',name:'Dailymotion',st:'active'},{icon:'🎮',name:'Twitch',st:'active'},
-  {icon:'💼',name:'LinkedIn',st:'active'},{icon:'📌',name:'Pinterest',st:'active'},
-  {icon:'🎙️',name:'Spotify',st:'beta'},{icon:'🌐',name:'Others',st:'active'},
-];
-
-document.getElementById('plt-grid').innerHTML = PLATFORMS.map(p=>`
-  <div class="plt-card">
-    <div class="plt-icon">${p.icon}</div>
-    <div class="plt-name">${p.name}</div>
-    <div class="plt-st" style="${p.st==='beta'?'color:var(--amber)':''}">
-      ${p.st==='beta'?'⚠ beta':'✓ ready'}
-    </div>
-  </div>`).join('');
-
-document.getElementById('dl-url').addEventListener('keydown',e=>{ if(e.key==='Enter') fetchVideo(); });
-
-async function fetchVideo() {
-  const url = document.getElementById('dl-url').value.trim();
-  const err = document.getElementById('dl-err');
-  const res = document.getElementById('dl-result');
-  const prog = document.getElementById('dl-prog');
-  const btn  = document.getElementById('dl-btn');
-  err.className='dl-err'; res.className='dl-result'; prog.className='dl-prog';
-
-  if(!url){ showDlErr('Paste a video URL first.'); return; }
-  if(!url.startsWith('http')){ showDlErr('URL must start with https://'); return; }
-
-  btn.disabled=true; btn.textContent='Fetching…';
-  prog.classList.add('show');
-  animProg(0,35,'Connecting to mahabub-apis.fun…',700);
-  addLog('INFO','AUTODL','Fetch request: '+url);
-
-  try {
-    // Try real API first, fall back to mock
-    let data = null;
-    try {
-      const r = await fetch(`/api/dl?url=${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(8000)});
-      if(r.ok) data = await r.json();
-    } catch {}
-
-    await new Promise(r=>setTimeout(r,800));
-    animProg(35,75,'Extracting video streams…',600);
-    await new Promise(r=>setTimeout(r,700));
-    animProg(75,100,'Ready!',300);
-    await new Promise(r=>setTimeout(r,350));
-
-    // Build mock result if API not available
-    if(!data?.hd && !data?.sd) {
-      const pm={'tiktok.com':'TikTok','youtube.com':'YouTube','youtu.be':'YouTube',
-        'instagram.com':'Instagram','facebook.com':'Facebook','twitter.com':'X/Twitter',
-        'x.com':'X/Twitter','reddit.com':'Reddit','vimeo.com':'Vimeo','twitch.tv':'Twitch'};
-      let plat='Unknown';
-      for(const[k,v] of Object.entries(pm)){ if(url.includes(k)){plat=v;break;} }
-      data = {platform:plat,title:`${plat} video · ${new Date().toLocaleTimeString()}`,hd:url,sd:url};
+    // ── Recent users ──────────────────────────────────────
+    const usersList = document.getElementById('usersList');
+    if (!data.users || data.users.length === 0) {
+      usersList.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">No users yet — users appear here after they interact with the bot.</div>';
+    } else {
+      usersList.innerHTML = data.users.map(u => {
+        const name   = u.name || `User ${u.id}`;
+        const handle = u.username ? `@${u.username}` : `ID: ${u.id}`;
+        const color  = avatarColor(u.id);
+        const msgs   = u.messageCount ? `${u.messageCount} messages` : '';
+        return `
+          <div class="user-item">
+            <div class="user-avatar" style="background:${color}">${escHtml(initials(name))}</div>
+            <div style="min-width:0;flex:1">
+              <div class="user-name">${escHtml(name)}</div>
+              <div class="user-meta">${escHtml(handle)}</div>
+              ${msgs ? `<div class="user-stat">💬 ${msgs}</div>` : ''}
+            </div>
+            <div class="user-time">${timeAgo(u.lastSeen)}</div>
+          </div>`;
+      }).join('');
     }
 
-    showDlResult(data);
-    addDlHistory(data,url);
-    addLog('OK','AUTODL',`Downloaded: ${data.platform} · "${data.title}"`);
-  } catch(e) {
-    showDlErr('Failed to fetch. Check the URL or try again.');
-    addLog('ERROR','AUTODL','Fetch failed: '+e.message);
-  } finally {
-    btn.disabled=false;
-    btn.innerHTML='<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v8M4 7l4 4 4-4"/><path d="M2 14h12"/></svg> Fetch';
-    prog.className='dl-prog';
+    // ── Active chats ──────────────────────────────────────
+    const chatsList = document.getElementById('chatsList');
+    if (!data.chats || data.chats.length === 0) {
+      chatsList.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">No chats recorded yet.</div>';
+    } else {
+      chatsList.innerHTML = data.chats.map(c => {
+        const title  = c.title || `Chat ${c.id}`;
+        const isPriv = !c.type || c.type === 'private';
+        const icon   = isPriv ? '🧑' : '🏘';
+        const meta   = [c.username ? `@${c.username}` : `ID: ${c.id}`, c.prefix ? `prefix: ${c.prefix}` : ''].filter(Boolean).join(' · ');
+        return `
+          <div class="chat-item">
+            <div class="chat-icon">${icon}</div>
+            <div style="min-width:0;flex:1">
+              <div class="chat-title">${escHtml(title)}</div>
+              <div class="chat-meta">${escHtml(meta)}</div>
+            </div>
+            <div>${chatTypeLabel(c.type)}</div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── Last update ───────────────────────────────────────
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+
+  } catch (e) {
+    console.error('Stats fetch error:', e);
   }
 }
 
-function showDlErr(msg) {
-  const el = document.getElementById('dl-err');
-  el.textContent='⚠ '+msg; el.classList.add('show');
-}
-
-function animProg(from,to,label,ms) {
-  const fill=document.getElementById('dl-prog-fill');
-  const pct=document.getElementById('dl-prog-pct');
-  const txt=document.getElementById('dl-prog-txt');
-  txt.textContent=label;
-  const s=Date.now();
-  function step(){
-    const p=Math.min(1,(Date.now()-s)/ms);
-    const v=from+(to-from)*p;
-    fill.style.width=v+'%'; pct.textContent=Math.round(v)+'%';
-    if(p<1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
-}
-
-function showDlResult(data) {
-  document.getElementById('dl-title').textContent = data.title||'Unknown title';
-  document.getElementById('dl-plat').textContent  = `📡 ${data.platform||'Unknown'} · ${new Date().toLocaleString()}`;
-  document.getElementById('dl-thumb').textContent = '▶';
-  const opts = document.getElementById('dl-opts');
-  opts.innerHTML = '';
-  if(data.hd) opts.innerHTML+=`<a class="dl-opt" href="${escH(data.hd)}" target="_blank" rel="noopener noreferrer" download><div><div class="dq">🎬 HD Quality</div><div class="ds">High definition</div></div><span class="di">↓</span></a>`;
-  if(data.sd && data.sd!==data.hd) opts.innerHTML+=`<a class="dl-opt" href="${escH(data.sd)}" target="_blank" rel="noopener noreferrer" download><div><div class="dq">📱 SD Quality</div><div class="ds">Smaller file size</div></div><span class="di">↓</span></a>`;
-  document.getElementById('dl-result').classList.add('show');
-}
-
-function addDlHistory(data, url) {
-  _dlHistory.unshift({...data,url,time:new Date()});
-  const badge = document.getElementById('dl-hist-ct');
-  badge.textContent = `${_dlHistory.length} download${_dlHistory.length!==1?'s':''}`;
-  document.getElementById('dl-hist').innerHTML = _dlHistory.length
-    ? _dlHistory.map((h,i)=>`
-      <div class="hist-item">
-        <div class="hist-thumb">▶</div>
-        <div class="hist-info">
-          <div class="hist-title">${escH(h.title||'–')}</div>
-          <div class="hist-meta">${escH(h.platform||'?')} · ${relTime(h.time)}</div>
-        </div>
-        <button class="btn btn-ghost btn-sm" style="font-size:.58rem" onclick="_dlHistory[${i}].hd&&window.open(_dlHistory[${i}].hd,'_blank')">↓ Again</button>
-      </div>`).join('')
-    : '<div style="text-align:center;padding:24px;font-family:var(--mono);font-size:.68rem;color:var(--muted)">No downloads yet</div>';
-}
-
-function clearHistory() {
-  _dlHistory=[];
-  document.getElementById('dl-hist').innerHTML='<div style="text-align:center;padding:24px;font-family:var(--mono);font-size:.68rem;color:var(--muted)">No downloads yet</div>';
-  document.getElementById('dl-hist-ct').textContent='0 downloads';
-  toast('History cleared','info');
-}
-
-// ─── BROADCAST ────────────────────────────────────────────────────────────────
-async function sendBroadcast() {
-  const text = document.getElementById('bc-text').value.trim();
-  if(!text){ toast('Write a message first','err'); return; }
-  const btn = document.getElementById('bc-send-btn');
-  btn.disabled=true; btn.textContent='Sending…';
-  addLog('INFO','BROADCAST','Sending broadcast to all chats…');
-
-  try {
-    const r = await apiFetch('/api/broadcast',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
-    const sent   = r?.sent   ?? (_statsCache?.counts?.total||1);
-    const failed = r?.failed ?? 0;
-    const el = document.getElementById('bc-result');
-    el.className='bc-result show ok';
-    el.textContent=`✅ Sent: ${sent} · Failed: ${failed}`;
-    addBcHistory(text,sent,failed);
-    addLog('OK','BROADCAST',`Sent to ${sent} chats, ${failed} failed`);
-    toast(`Broadcast sent to ${sent} chats`,'ok');
-    document.getElementById('bc-text').value='';
-  } catch(e){
-    const el=document.getElementById('bc-result');
-    el.className='bc-result show err'; el.textContent='❌ Failed: '+e.message;
-    addLog('ERROR','BROADCAST','Broadcast failed: '+e.message);
-  } finally { btn.disabled=false; btn.textContent='📡 Send Broadcast'; }
-}
-
-function addBcHistory(text, sent, failed) {
-  _bcHistory.unshift({text,sent,failed,time:new Date()});
-  document.getElementById('bc-history').innerHTML = _bcHistory.map(h=>`
-    <div style="padding:12px 0;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:flex-start">
-      <div style="flex:1">
-        <div style="font-size:.78rem;color:var(--text);margin-bottom:3px">${escH(h.text.slice(0,80))+(h.text.length>80?'…':'')}</div>
-        <div style="font-family:var(--mono);font-size:.58rem;color:var(--muted)">${relTime(h.time)}</div>
-      </div>
-      <div style="display:flex;gap:5px">
-        <span class="tag t-ok">✓ ${h.sent}</span>
-        ${h.failed?`<span class="tag t-err">✗ ${h.failed}</span>`:''}
-      </div>
-    </div>`).join('');
-}
-
-// ─── BLACKLIST ────────────────────────────────────────────────────────────────
-function renderBlacklist() {
-  const ul = document.getElementById('bl-user-list');
-  ul.innerHTML = _blacklistUsers.length
-    ? _blacklistUsers.map(id=>`<div class="bl-list-item"><span class="bl-id">👤 ${id}</span><button class="bl-rm" onclick="removeBlacklist('user','${id}')">✕</button></div>`).join('')
-    : '<div style="text-align:center;font-family:var(--mono);font-size:.65rem;color:var(--muted);padding:14px 0">No blocked users</div>';
-
-  const cl = document.getElementById('bl-chat-list');
-  cl.innerHTML = _blacklistChats.length
-    ? _blacklistChats.map(id=>`<div class="bl-list-item"><span class="bl-id">💬 ${id}</span><button class="bl-rm" onclick="removeBlacklist('chat','${id}')">✕</button></div>`).join('')
-    : '<div style="text-align:center;font-family:var(--mono);font-size:.65rem;color:var(--muted);padding:14px 0">No blocked chats</div>';
-
-  const wl = document.getElementById('wl-list');
-  if(_whitelistEnabled) {
-    wl.innerHTML = _whitelistChats.length
-      ? _whitelistChats.map(id=>`<div class="bl-list-item"><span class="bl-id">✅ ${id}</span><button class="bl-rm" onclick="removeWhitelist('${id}')">✕</button></div>`).join('')
-      : '<div style="text-align:center;font-family:var(--mono);font-size:.65rem;color:var(--muted);padding:14px 0">No whitelisted chats</div>';
-  }
-  const wlt = document.getElementById('wl-toggle');
-  _whitelistEnabled ? wlt.classList.add('on') : wlt.classList.remove('on');
-}
-
-function addBlacklist(type) {
-  const inp = document.getElementById(`bl-${type}-inp`);
-  const val = inp.value.trim();
-  if(!val){ toast('Enter an ID first','err'); return; }
-  const arr = type==='user' ? _blacklistUsers : _blacklistChats;
-  if(!arr.includes(val)) arr.push(val);
-  inp.value='';
-  renderBlacklist();
-  toast(`${type==='user'?'User':'Chat'} ${val} blocked`,'ok');
-  addLog('WARN','BLACKLIST',`Blocked ${type}: ${val}`);
-}
-
-function removeBlacklist(type, id) {
-  if(type==='user') _blacklistUsers = _blacklistUsers.filter(x=>x!==id);
-  else _blacklistChats = _blacklistChats.filter(x=>x!==id);
-  renderBlacklist();
-  toast(`Unblocked ${id}`,'info');
-}
-
-function addWhitelist() {
-  const inp = document.getElementById('wl-inp');
-  const val = inp.value.trim();
-  if(!val){ toast('Enter a chat ID first','err'); return; }
-  if(!_whitelistChats.includes(val)) _whitelistChats.push(val);
-  inp.value='';
-  renderBlacklist();
-  toast('Chat '+val+' whitelisted','ok');
-}
-
-function removeWhitelist(id) {
-  _whitelistChats = _whitelistChats.filter(x=>x!==id);
-  renderBlacklist();
-  toast('Removed from whitelist','info');
-}
-
-function toggleWhitelist() {
-  _whitelistEnabled = !_whitelistEnabled;
-  renderBlacklist();
-  toast(`Whitelist mode ${_whitelistEnabled?'enabled':'disabled'}`,_whitelistEnabled?'ok':'info');
-  addLog(_whitelistEnabled?'WARN':'INFO','CONFIG',`Whitelist mode ${_whitelistEnabled?'enabled':'disabled'}`);
-}
-
-// ─── SETTINGS / CONFIG ────────────────────────────────────────────────────────
-async function loadConfig() {
-  const d = _statsCache;
-  if(!d) return;
-  const cfg = d.config||{};
-  const set = (id,v)=>{ const el=document.getElementById(id); if(el&&v!==undefined) el.value=v; };
-  set('cfg-botName',cfg.botName||'MAHABUB-BOT');
-  set('cfg-prefix',cfg.prefix||'/');
-  set('cfg-language',cfg.language||'en');
-  set('cfg-cooldown',cfg.cooldownDefault??3);
-  set('cfg-port',cfg.port||3000);
-  set('cfg-api',cfg.api||'https://mahabub-apis.fun');
-  set('cfg-dbName',cfg.dbName||'TeleBot');
-  set('cfg-webhookUrl',cfg.webhookUrl||'');
-  if(cfg.useWebhook) document.getElementById('tgl-webhook')?.classList.add('on');
-  _adminIds = (cfg.adminBot||_adminIds).map(String);
-  renderAdminList();
-  _blacklistUsers = (cfg.blackList?.users||[]).map(String);
-  _blacklistChats = (cfg.blackList?.chats||[]).map(String);
-  _whitelistEnabled = cfg.whiteListMode?.enabled||false;
-  _whitelistChats = (cfg.whiteListMode?.allowedChatIds||[]).map(String);
-}
-
-async function saveConfig() {
-  const cfg = {
-    botName:         document.getElementById('cfg-botName')?.value,
-    prefix:          document.getElementById('cfg-prefix')?.value,
-    language:        document.getElementById('cfg-language')?.value,
-    cooldownDefault: parseInt(document.getElementById('cfg-cooldown')?.value||3),
-    port:            parseInt(document.getElementById('cfg-port')?.value||3000),
-    api:             document.getElementById('cfg-api')?.value,
-    dbName:          document.getElementById('cfg-dbName')?.value,
-    webhookUrl:      document.getElementById('cfg-webhookUrl')?.value,
-    useWebhook:      document.getElementById('tgl-webhook')?.classList.contains('on'),
-    adminBot:        _adminIds,
-    blackList:       {users:_blacklistUsers,chats:_blacklistChats},
-    whiteListMode:   {enabled:_whitelistEnabled,allowedChatIds:_whitelistChats},
-  };
-  try {
-    const r = await apiFetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)});
-    if(r?.ok!==false){
-      toast('Config saved ✓','ok');
-      addLog('OK','CONFIG','Config saved via /api/config');
-    } else { toast('Save failed (API)','err'); }
-  } catch {
-    toast('Config saved locally (API unavailable)','info');
-    addLog('WARN','CONFIG','Config save — API unavailable, stored locally');
-  }
-  document.getElementById('s-prefix').textContent = cfg.prefix||'/';
-}
-
-// ─── ADMIN LIST ───────────────────────────────────────────────────────────────
-function renderAdminList() {
-  document.getElementById('admin-list').innerHTML = _adminIds.map(id=>`
-    <div class="bl-list-item">
-      <span class="bl-id">👑 ${id}</span>
-      <button class="bl-rm" onclick="removeAdmin('${id}')">✕</button>
-    </div>`).join('') || '<div style="text-align:center;font-family:var(--mono);font-size:.65rem;color:var(--muted);padding:10px">No admins</div>';
-}
-
-function addAdmin() {
-  const inp=document.getElementById('admin-inp');
-  const val=inp.value.trim();
-  if(!val){ toast('Enter a Telegram user ID','err'); return; }
-  if(!_adminIds.includes(val)) _adminIds.push(val);
-  inp.value='';
-  renderAdminList();
-  toast('Admin '+val+' added','ok');
-  addLog('OK','CONFIG','Admin added: '+val);
-}
-
-function removeAdmin(id) {
-  _adminIds=_adminIds.filter(x=>x!==id);
-  renderAdminList();
-  toast('Admin '+id+' removed','info');
-}
-
-// ─── LOGS ─────────────────────────────────────────────────────────────────────
-const LOG_SEED = [
-  {lv:'OK',ctx:'SERVER',msg:'Dashboard on port 3000'},
-  {lv:'OK',ctx:'DB',msg:'Connected to MongoDB Atlas'},
-  {lv:'OK',ctx:'LOADER',msg:'Loaded 43 commands from scripts/cmds/'},
-  {lv:'OK',ctx:'LOADER',msg:'Loaded 5 events from scripts/events/'},
-  {lv:'INFO',ctx:'BOT',msg:'Polling mode — allowed_updates: message, callback_query, message_reaction'},
-  {lv:'INFO',ctx:'BOOT',msg:'MAHABUB-BOT — 43 cmds | 5 events'},
-  {lv:'CMD',ctx:'help',msg:'private | user:7406650400 | chat:7406650400'},
-  {lv:'OK',ctx:'AUTODL',msg:'Video downloaded: TikTok · "Dance video" (4.1MB)'},
-  {lv:'CMD',ctx:'video',msg:'group | user:123456 | chat:-100987654'},
-  {lv:'WARN',ctx:'RATE',msg:'Rate limit hit on mahabub-apis.fun — retry in 2s'},
-  {lv:'INFO',ctx:'KEEP-ALIVE',msg:'Heartbeat ping → /ping (200 OK)'},
-];
-
-function addLog(lv, ctx, msg) {
-  _logs.push({lv,ctx,msg,time:new Date()});
-  if(_logs.length>200) _logs.shift();
-  if(document.getElementById('page-logs')?.classList.contains('active')) renderLogs();
-}
-
-function renderLogs() {
-  const filter = document.getElementById('log-filter')?.value||'';
-  const show   = filter ? _logs.filter(l=>l.lv===filter) : _logs;
-  const colors = {INFO:'var(--muted)',OK:'var(--green)',WARN:'var(--amber)',ERROR:'var(--red)',CMD:'var(--accent2)',EVENT:'var(--cyan)'};
-  document.getElementById('log-out').innerHTML = show.map(l=>`
-    <div class="log-line">
-      <span class="log-ts">${l.time.toLocaleTimeString('en',{hour12:false})}</span>
-      <span class="log-lvl" style="color:${colors[l.lv]||'var(--muted)'}">[${l.lv.padEnd(5)}]</span>
-      <span style="color:var(--muted2)">(${l.ctx})</span>
-      <span style="color:${l.lv==='INFO'?'var(--text)':colors[l.lv]||'var(--text)'}">${escH(l.msg)}</span>
-    </div>`).join('') || '<div style="text-align:center;padding:28px;font-family:var(--mono);font-size:.65rem;color:var(--muted)">No logs yet</div>';
-}
-
-function clearLogs() { _logs=[]; renderLogs(); toast('Logs cleared','info'); }
-function logScrollBottom() {
-  const el=document.getElementById('log-out');
-  setTimeout(()=>el.scrollTop=el.scrollHeight,50);
-}
-
-// ─── RESTART ──────────────────────────────────────────────────────────────────
-function confirmRestart() {
-  showModal('Restart Bot','This will restart the GoatBot process via index.js. All active sessions will be interrupted.',async()=>{
-    addLog('WARN','PROCESS','Restart requested from dashboard');
-    try {
-      await apiFetch('/api/restart',{method:'POST'});
-      toast('Restart signal sent — reconnecting…','ok');
-    } catch { toast('Restart sent (bot may be unreachable momentarily)','info'); }
-  });
-}
-
-// ─── UTILITY ──────────────────────────────────────────────────────────────────
-function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-// ─── INIT ─────────────────────────────────────────────────────────────────────
-// Seed logs
-LOG_SEED.forEach(l => _logs.push({...l,time:new Date(Date.now()-Math.random()*300000)}));
-_logs.sort((a,b)=>a.time-b.time);
-
-// Activity bars
-renderActivityBars();
-
-// Initial API load
-refreshAll().then(()=>{
-  // Also try to load chats from stats
-  if(_statsCache?.users) {
-    renderChatsTable((_statsCache.users||[]).map(u=>({...u,type:'private',title:u.name})));
-  }
-});
-
-// Refresh interval
-setInterval(refreshAll, 10000);
-updateClock();
-setInterval(updateClock, 5000);
-
-// Auto log heartbeat
-setInterval(()=>{
-  addLog('INFO','KEEP-ALIVE','Heartbeat → /ping');
-}, 14*60*1000);
-
-// Fake live log trickle
-setInterval(()=>{
-  const liveLogs = [
-    ['CMD','dl',`private | user:${Math.floor(Math.random()*9000000+1000000)}`],
-    ['INFO','AUTODL','Link detected — fetching from mahabub-apis.fun'],
-    ['OK','AUTODL',`Downloaded: ${['TikTok','YouTube','Instagram'][Math.floor(Math.random()*3)]} (${(Math.random()*8+1).toFixed(1)}MB)`],
-    ['CMD','help',`group | chat:-100${Math.floor(Math.random()*900000+100000)}`],
-    ['INFO','PROCESS','Memory: '+Math.floor(Math.random()*200+100)+'MB'],
-  ];
-  const pick = liveLogs[Math.floor(Math.random()*liveLogs.length)];
-  addLog(pick[0],pick[1],pick[2]);
-}, 9000);
+fetchStats();
+setInterval(fetchStats, 10000);
 </script>
 </body>
 </html>
