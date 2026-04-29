@@ -168,15 +168,15 @@ async function handleMessage(bot, msg) {
     // Per-thread disabled commands
     const threadCfg    = await threadsData.get(chatId);
     const disabledCmds = threadCfg?.disabledCmds || [];
-    if (disabledCmds.includes(name)) break;
+    if (disabledCmds.includes(name)) return;
 
     // Admin-only mode
-    if (threadCfg?.adminOnly && role < 1) break;
+    if (threadCfg?.adminOnly && role < 1) return;
 
     // Role check
     if (role < (cfg.role || 0)) {
       await message.reply("⛔ You don't have permission to use this command.");
-      break;
+      return;
     }
 
     // Cooldown
@@ -198,6 +198,14 @@ async function handleMessage(bot, msg) {
   }
 
   // ── 7. onChat handlers ────────────────────────────────────────────────────
+  // Re-check access gates so onChat/eventCommands don't bypass whitelist or adminOnly
+  const _threadCfgForGates = await threadsData.get(chatId);
+  if (config.whiteListMode?.enabled) {
+    const allowed = config.whiteListMode.allowedChatIds?.map(String) || [];
+    if (!allowed.includes(chatId) && !config.adminBot.map(String).includes(userId)) return;
+  }
+  if (_threadCfgForGates?.adminOnly && role < 1) return;
+
   const { onChat } = global.GoatBot;
   for (const { name, fn } of onChat) {
     const cmd     = commands.get(name);
