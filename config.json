@@ -5,17 +5,19 @@
   "adminBot": [
     "7406650400"
   ],
-  "botToken": "8665138433:AAH3Ncv-is_PvEN6ta6SvRUXNpRML08CQX8",
+  "botToken": "8635485826:AAHrkljhzsIPlJvdroFY9-85pAhICffGKAc",
   "mongoUri": "mongodb+srv://mahabub:0000@cluster0.wg033zv.mongodb.net/?appName=Cluster0",
   "dbName": "TeleBot",
   "webhookUrl": "",
   "useWebhook": false,
-  "port": 3000,
+  "port": 24736,
   "api": "https://mahabub-apis.fun",
   "cooldownDefault": 3,
   "whiteListMode": {
-    "enabled": false,
-    "allowedChatIds": ["7406650400"]
+    "enabled": true,
+    "allowedChatIds": [
+      "7406650400"
+    ]
   },
   "blackList": {
     "users": [],
