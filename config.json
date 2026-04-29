@@ -14,7 +14,7 @@
   "api": "https://mahabub-apis.fun",
   "cooldownDefault": 3,
   "whiteListMode": {
-    "enabled": true,
+    "enabled": false,
     "allowedChatIds": [
       "7406650400"
     ]
