@@ -1,4 +1,3 @@
-
 {
   "botName": "MAHABUB-BOT",
   "prefix": "/",
@@ -16,7 +15,7 @@
   "cooldownDefault": 3,
   "whiteListMode": {
     "enabled": false,
-    "allowedChatIds": []
+    "allowedChatIds": ["7406650400"]
   },
   "blackList": {
     "users": [],
