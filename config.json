@@ -13,6 +13,9 @@
   "port": 24736,
   "api": "https://mahabub-apis.fun",
   "cooldownDefault": 3,
+  "autoRestart": false,
+  "messageLogging": false,
+  "blackListActive": false,
   "whiteListMode": {
     "enabled": false,
     "allowedChatIds": [

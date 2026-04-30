@@ -174,18 +174,22 @@ app.get("/api/stats", async (req, res) => {
     users:    userList,
     chats:    chatList,
     config: {
-      botName:         config.botName,
-      prefix:          config.prefix,
-      language:        config.language,
-      cooldownDefault: config.cooldownDefault,
-      port:            config.port,
-      api:             config.api,
-      dbName:          config.dbName,
-      webhookUrl:      config.webhookUrl,
-      useWebhook:      config.useWebhook,
-      adminBot:        config.adminBot,
-      whiteListMode:   config.whiteListMode,
-      blackList:       config.blackList,
+      botName:          config.botName,
+      prefix:           config.prefix,
+      language:         config.language,
+      cooldownDefault:  config.cooldownDefault,
+      port:             config.port,
+      api:              config.api,
+      dbName:           config.dbName,
+      webhookUrl:       config.webhookUrl,
+      useWebhook:       config.useWebhook,
+      adminBot:         config.adminBot,
+      whiteListMode:    config.whiteListMode,
+      blackList:        config.blackList,
+      // ── Toggle booleans (were missing — caused switches to reset on refresh) ──
+      blackListActive:  config.blackListActive  ?? false,
+      autoRestart:      config.autoRestart      ?? false,
+      messageLogging:   config.messageLogging   ?? false,
     },
   });
 });
@@ -199,7 +203,7 @@ app.post("/api/toggle", async (req, res) => {
     const updates = {};
     
     // Handle different setting keys
-    if (key === "whiteListMode") {
+    if (key === "whiteListMode.enabled" || key === "whiteListMode") {
       updates.whiteListMode = { ...config.whiteListMode, enabled: value };
     } else if (key === "autoRestart") {
       updates.autoRestart = value;
@@ -269,6 +273,82 @@ app.get("/api/dl", async (req, res) => {
     res.json({ ok: true, ...r.data });
   } catch (e) {
     res.status(502).json({ ok: false, error: e.message });
+  }
+});
+
+// ── /api/whitelist (GET) — list allowed chat IDs ──────────────────────────
+app.get("/api/whitelist", (req, res) => {
+  res.json({ ok: true, allowedChatIds: config.whiteListMode?.allowedChatIds || [] });
+});
+
+// ── /api/whitelist (POST) — add a chat ID ─────────────────────────────────
+app.post("/api/whitelist", (req, res) => {
+  try {
+    const { id } = req.body || {};
+    if (!id) return res.status(400).json({ ok: false, error: "id required" });
+    const list = config.whiteListMode?.allowedChatIds || [];
+    const strId = String(id);
+    if (!list.includes(strId)) list.push(strId);
+    config.whiteListMode = { ...config.whiteListMode, allowedChatIds: list };
+    const cfgPath = path.join(__dirname, "config.json");
+    fs.writeFileSync(cfgPath, JSON.stringify(config, null, 2), "utf8");
+    res.json({ ok: true, allowedChatIds: list });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ── /api/whitelist (DELETE) — remove a chat ID ────────────────────────────
+app.delete("/api/whitelist/:id", (req, res) => {
+  try {
+    const strId = String(req.params.id);
+    const list = (config.whiteListMode?.allowedChatIds || []).filter(x => x !== strId);
+    config.whiteListMode = { ...config.whiteListMode, allowedChatIds: list };
+    const cfgPath = path.join(__dirname, "config.json");
+    fs.writeFileSync(cfgPath, JSON.stringify(config, null, 2), "utf8");
+    res.json({ ok: true, allowedChatIds: list });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ── /api/blacklist (GET) — list blocked users/chats ───────────────────────
+app.get("/api/blacklist", (req, res) => {
+  res.json({ ok: true, users: config.blackList?.users || [], chats: config.blackList?.chats || [] });
+});
+
+// ── /api/blacklist (POST) — add a user or chat ID ─────────────────────────
+app.post("/api/blacklist", (req, res) => {
+  try {
+    const { id, type } = req.body || {};
+    if (!id || !type) return res.status(400).json({ ok: false, error: "id and type required" });
+    const bl = { users: [...(config.blackList?.users || [])], chats: [...(config.blackList?.chats || [])] };
+    const strId = String(id);
+    if (type === "user"  && !bl.users.includes(strId)) bl.users.push(strId);
+    if (type === "chat"  && !bl.chats.includes(strId)) bl.chats.push(strId);
+    config.blackList = bl;
+    const cfgPath = path.join(__dirname, "config.json");
+    fs.writeFileSync(cfgPath, JSON.stringify(config, null, 2), "utf8");
+    res.json({ ok: true, ...bl });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ── /api/blacklist (DELETE) — remove a user or chat ID ────────────────────
+app.delete("/api/blacklist/:id/:type", (req, res) => {
+  try {
+    const strId = String(req.params.id);
+    const { type } = req.params;
+    const bl = { users: [...(config.blackList?.users || [])], chats: [...(config.blackList?.chats || [])] };
+    if (type === "user") bl.users = bl.users.filter(x => x !== strId);
+    if (type === "chat") bl.chats = bl.chats.filter(x => x !== strId);
+    config.blackList = bl;
+    const cfgPath = path.join(__dirname, "config.json");
+    fs.writeFileSync(cfgPath, JSON.stringify(config, null, 2), "utf8");
+    res.json({ ok: true, ...bl });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
   }
 });
 
